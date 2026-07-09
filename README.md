@@ -74,10 +74,22 @@ receber os arquivos enviados por upload.
 npm run dev
 ```
 
+## Documentação
+
+- **`CLAUDE.md`** — princípios de arquitetura e regras que não devem ser
+  quebradas sem justificativa (leitura obrigatória antes de gerar código).
+- **`AGENTS.md`** — referência rápida (comandos, convenções, checklist antes
+  de commitar), formato universal lido por qualquer agente de código.
+- **`ARCHITECTURE.md`** — desenho técnico: fluxo de dados, camadas, schema,
+  rotas de API, segurança e deploy.
+- **`docs/PLANO.md`** — roadmap de desenvolvimento por fase.
+
 ## Estrutura do repositório
 
 ```
 ├── CLAUDE.md                     # instruções do projeto para o agente de IA
+├── AGENTS.md                     # referência rápida (comandos, convenções)
+├── ARCHITECTURE.md               # desenho técnico do sistema
 ├── docs/
 │   └── PLANO.md                  # roadmap de desenvolvimento, por fase
 ├── supabase/
@@ -132,19 +144,25 @@ Mais detalhes de arquitetura e decisões de design estão em `CLAUDE.md`.
 
 ## Automação (sincronização periódica)
 
-A rota `POST /api/cron/sync` sincroniza todas as fontes ativas do tipo
-`google_sheets` de uma vez, protegida por `CRON_SECRET` (header
-`Authorization: Bearer <CRON_SECRET>`). Por padrão **não há agendamento
-automático configurado** — o plano Hobby da Vercel só permite cron rodando
-no máximo 1x/dia, então a decisão foi deixar a sincronização de planilhas
-manual (botão "Sincronizar agora" em cada fonte) até haver necessidade real
-de automação. Opções para reativar, dependendo da frequência desejada:
+A rota `GET /api/cron/sync` sincroniza todas as fontes ativas do tipo
+`google_sheets` de uma vez, protegida por `CRON_SECRET` (a Vercel injeta o
+header `Authorization: Bearer $CRON_SECRET` automaticamente em chamadas de
+Cron Jobs quando essa env var está configurada). Por padrão **não há
+agendamento automático configurado** — o plano Hobby da Vercel só permite
+cron rodando no máximo 1x/dia, então a decisão foi deixar a sincronização de
+planilhas manual (botão "Sincronizar agora" em cada fonte) até haver
+necessidade real de automação. `vercel.json` já existe no repo (só com
+`"framework": "nextjs"`, necessário pro deploy funcionar); pra reativar o
+cron, adicione a chave `crons` nele:
 
-- **1x/dia, de graça (Hobby):** crie `vercel.json` na raiz com:
+- **1x/dia, de graça (Hobby):**
   ```json
-  { "crons": [{ "path": "/api/cron/sync", "schedule": "0 6 * * *" }] }
+  {
+    "framework": "nextjs",
+    "crons": [{ "path": "/api/cron/sync", "schedule": "0 6 * * *" }]
+  }
   ```
-- **Mais frequente:** requer plano [Pro da Vercel](https://vercel.com/docs/cron-jobs/usage-and-pricing#hobby-plan) — mesmo `vercel.json`, com um `schedule` mais frequente (ex: `*/30 * * * *`).
+- **Mais frequente:** requer plano [Pro da Vercel](https://vercel.com/docs/cron-jobs/usage-and-pricing#hobby-plan) — mesma chave `crons`, com um `schedule` mais frequente (ex: `*/30 * * * *`).
 - **Grátis e mais frequente, sem depender do plano da Vercel:** um serviço
   externo (ex: [cron-job.org](https://cron-job.org), GitHub Actions
   agendado) chamando `POST /api/cron/sync` com o header

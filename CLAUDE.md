@@ -5,6 +5,10 @@ Leia por completo antes de gerar código. As decisões aqui já foram tomadas �
 reabra debates de arquitetura sem justificativa forte; se algo parecer errado,
 pergunte antes de mudar.
 
+Ver também `AGENTS.md` (comandos, convenções, checklist antes de commitar —
+formato universal, útil pra qualquer agente) e `ARCHITECTURE.md` (fluxo de
+dados, camadas, schema, rotas de API e deploy).
+
 ## O que este projeto faz
 
 Unifica respostas de múltiplos formulários (Google Sheets, e também upload

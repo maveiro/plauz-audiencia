@@ -39,6 +39,8 @@ yarn-error.log*
 
 # estado local de ferramentas de sessão (Claude Code), não faz parte do projeto
 .claude/
+# config local de servidores MCP (ex: acesso ao Supabase) — específica de cada máquina
+.mcp.json
 
 # typescript
 *.tsbuildinfo
