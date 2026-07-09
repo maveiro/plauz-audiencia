@@ -179,19 +179,34 @@ async function runSync(
   return { rowsFound: rows.length, rowsInserted };
 }
 
+const FETCH_HASHES_PAGE_SIZE = 1000;
+
 async function fetchExistingHashes(
   supabase: SupabaseServiceClient,
   sourceId: string,
 ): Promise<Set<string>> {
-  const { data, error } = await supabase
-    .from("raw_responses")
-    .select("row_hash")
-    .eq("source_id", sourceId);
+  const hashes = new Set<string>();
 
-  if (error) {
-    throw new Error(`Falha ao buscar row_hash existentes: ${error.message}`);
+  // O PostgREST limita respostas sem paginação a 1000 linhas por padrão —
+  // sem este loop, fontes com mais de 1000 raw_responses fariam esta função
+  // "esquecer" hashes já existentes e tentar reinseri-los, batendo na
+  // constraint única (source_id, row_hash).
+  for (let from = 0; ; from += FETCH_HASHES_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("raw_responses")
+      .select("row_hash")
+      .eq("source_id", sourceId)
+      .range(from, from + FETCH_HASHES_PAGE_SIZE - 1);
+
+    if (error) {
+      throw new Error(`Falha ao buscar row_hash existentes: ${error.message}`);
+    }
+    for (const r of data ?? []) hashes.add(r.row_hash);
+
+    if (!data || data.length < FETCH_HASHES_PAGE_SIZE) break;
   }
-  return new Set(data?.map((r) => r.row_hash) ?? []);
+
+  return hashes;
 }
 
 function dedupeNewRows(
