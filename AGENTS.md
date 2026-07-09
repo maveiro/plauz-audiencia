@@ -56,7 +56,13 @@ docs/PLANO.md   roadmap por fase
   óbvio pela leitura do código (uma restrição escondida, um workaround, uma
   decisão que alguém vai questionar depois).
 - Módulos que tocam segredos (`SUPABASE_SERVICE_ROLE_KEY`, chave da service
-  account do Google) começam com `import "server-only"`.
+  account do Google, `ANTHROPIC_API_KEY`) começam com `import "server-only"`.
+- Gráficos do `/dashboard` usam Recharts em Client Components (`"use client"`)
+  — a busca de dados fica no Server Component da página, só o componente de
+  gráfico em si precisa ser client. Antes de adicionar ou mudar cor de um
+  gráfico, usar o skill `dataviz`; a paleta já validada está em
+  `app/globals.css` (`--series-1..8`, `--status-*`) — reaproveitar, não
+  inventar cor nova ad-hoc.
 - Novo transform de campo = nova função em `lib/transforms/index.ts`, nunca
   um `if` condicional por fonte espalhado pelo motor de sync.
 - Migrações são sempre um novo arquivo em `supabase/migrations/`, nunca uma

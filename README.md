@@ -21,6 +21,8 @@ nunca alterar a fonte original.
 - Google Sheets API — leitura das planilhas, via service account
 - `papaparse` / `xlsx` (SheetJS) — leitura de arquivos CSV/Excel enviados por upload
 - Vercel Cron — sincronização automática periódica (apenas fontes do tipo Google Sheets; ver nota sobre o plano Hobby abaixo)
+- [Recharts](https://recharts.org) — gráficos do dashboard (`/dashboard`)
+- Anthropic (Claude) — opcional, só para o botão "Resolver com IA" em `/revisao`
 
 ## Setup local
 
@@ -49,7 +51,8 @@ supabase db push
 ```
 Isso aplica as migrações em `supabase/migrations/` ao seu projeto Supabase
 (schema inicial + correções de constraint + função de normalização
-geográfica + view de sobreposição de público).
+geográfica + view de sobreposição de público + views do dashboard +
+log de auditoria da revisão de local assistida por IA).
 
 Se `supabase login` (fluxo interativo via navegador) não estiver disponível
 no seu ambiente, use a alternativa que já existe no projeto — aplica direto
@@ -125,9 +128,10 @@ npm run dev
 ├── app/                           # rotas Next.js (interface + API)
 │   ├── artistas/                  # cadastro de artistas e eventos
 │   ├── fontes/                    # cadastro, listagem, mapeamento e exclusão de fontes
-│   ├── revisao/                   # revisão manual de cidade/estado ambíguos
+│   ├── revisao/                   # revisão manual de cidade/estado ambíguos (com botão "Resolver com IA")
 │   ├── publico-sobreposto/        # análise de sobreposição de público entre artistas
 │   ├── sync-logs/                 # histórico de sincronizações
+│   ├── dashboard/                 # acompanhamento diário — volume, tendência, ranking, geografia, qualidade
 │   └── api/
 │       ├── sync/[sourceId]/       # dispara o motor de sincronização
 │       ├── sources/upload/        # cria fonte arquivo_upload (recebe o arquivo)
@@ -137,11 +141,12 @@ npm run dev
     ├── readers/                   # leitores de fonte (Google Sheets, upload de arquivo)
     ├── sync/                      # motor de sincronização (agnóstico ao tipo de fonte)
     ├── transforms/                # dicionário de transforms por campo
-    ├── geo/                       # normalização geográfica (pg_trgm)
+    ├── geo/                       # normalização geográfica (pg_trgm) + revisão assistida por IA
     ├── validation/                # validação leve de e-mail/telefone
     ├── google/                    # cliente autenticado do Google Sheets
     ├── storage/                   # upload para o Supabase Storage
-    └── supabase/                  # cliente server-side (service role)
+    ├── supabase/                  # cliente server-side (service role)
+    └── dashboard/                 # busca + agregação server-side para /dashboard
 ```
 
 ## Conceitos-chave
@@ -163,6 +168,14 @@ npm run dev
   público via uma view dedicada (ver `docs/PLANO.md`, Fase 6).
 - **Exclusão**: fontes excluídas usam soft delete (ficam ocultas, mas
   recuperáveis por um tempo) antes de uma limpeza definitiva.
+- **Dashboard**: tela de acompanhamento diário (`/dashboard`) — volume,
+  tendência, ranking de eventos, geografia e qualidade de dado por fonte,
+  com alerta quando uma fonte para de sincronizar. Só leitura.
+- **Revisão de local assistida por IA**: no `/revisao`, além da confirmação
+  manual, um botão "Resolver com IA" trata com Claude os casos que a
+  normalização determinística deixou pendentes, sempre validando a sugestão
+  contra a lista de municípios antes de aplicar, e registrando tudo em
+  `geo_ia_logs` (aplicado ou não).
 
 Mais detalhes de arquitetura e decisões de design estão em `CLAUDE.md`.
 
@@ -206,8 +219,12 @@ npm run hard-delete-expired -- --dias=30 --confirmar  # apaga de fato
 
 Ambiente de produção (Vercel + Supabase) configurado e operacional: todas as
 env vars preenchidas (Supabase, Google service account, `CRON_SECRET`),
-migrações aplicadas no banco, e o cron de sincronização diária ativo (ver
-"Automação" acima). Ver `docs/PLANO.md` para o detalhamento por fase de
+migrações aplicadas no banco (incluindo as do dashboard e da revisão por IA,
+`0005`/`0006`), e o cron de sincronização diária ativo (ver "Automação"
+acima). `ANTHROPIC_API_KEY` é a única variável opcional — sem ela, o resto do
+app funciona normalmente; o botão "Resolver com IA" em `/revisao` continua
+visível, mas falha ao ser clicado (o SDK da Anthropic lança erro de
+credencial ausente). Ver `docs/PLANO.md` para o detalhamento por fase de
 desenvolvimento.
 
 O que continua sendo trabalho manual **recorrente** (não é uma pendência de

@@ -24,6 +24,11 @@ evento pertence a um **artista**. Cada evento tem uma ou mais **fontes**
 outras coisas, analisar **sobreposição de público entre artistas** (mesma
 pessoa interessada em mais de um).
 
+Além do cadastro/sincronização, existe uma tela de **dashboard**
+(`/dashboard`) para acompanhamento diário — volume, tendência, ranking de
+eventos, geografia e qualidade de dado por fonte. Ver seção "Camada
+adicional: dashboard" abaixo e `ARCHITECTURE.md`.
+
 ## Stack
 
 - **Frontend/API**: Next.js (App Router), deploy na Vercel
@@ -32,6 +37,8 @@ pessoa interessada em mais de um).
 - **Integração externa**: Google Sheets API v4, autenticado via **service account**
   (não usar OAuth de usuário — não precisamos escrever, só ler)
 - **Parsing de arquivo**: `papaparse` (CSV) e `xlsx`/SheetJS (Excel)
+- **Gráficos do dashboard**: Recharts (Client Components — a busca de dados
+  em si continua Server Component)
 - **Agendamento**: Vercel Cron chamando uma rota de API interna (apenas para
   fontes do tipo `google_sheets` — uploads não têm agendamento, são reenviados
   manualmente). A rota (`/api/cron/sync`) existe e funciona independente de
@@ -110,6 +117,19 @@ Ver `docs/PLANO.md` para o detalhamento de fases e
     filtram `deleted_at is null`). Isso evita o erro recorrente de soft
     delete: esquecer o filtro em uma query e um dado "excluído" reaparecer na
     interface.
+
+### Camada adicional: dashboard
+
+`/dashboard` é só leitura — nunca escreve em `interessados` nem em nenhuma
+tabela canônica. Consulta views dedicadas (`dash_interessados_diarios`,
+`dash_qualidade_por_fonte`, `dash_geografia` — `0005_dashboard_views.sql`),
+cada uma no grão que permite filtrar por período/artista via PostgREST
+depois, sem precisar de uma view por combinação de filtro. Se for adicionar
+um novo corte de análise (ex: por faixa etária, por canal), prefira estender
+uma view existente ou criar uma nova no mesmo padrão — nunca agregar em SQL
+ad-hoc espalhado pelas páginas. Ver `ARCHITECTURE.md`, seção "Dashboard",
+para o desenho completo, e o skill `dataviz` antes de mexer em cor ou
+adicionar um gráfico novo (a paleta já validada vive em `app/globals.css`).
 
 ### Camada adicional: revisão de local assistida por IA
 
