@@ -84,6 +84,15 @@ receber os arquivos enviados por upload.
 4. Para cada planilha que for cadastrar, compartilhe-a (permissão de leitura)
    com o e-mail da service account — passo manual, feito uma vez por planilha.
 
+**Colando a private key no dashboard da Vercel:** `.env.local` usa aspas
+duplas ao redor do valor só como sintaxe do arquivo (o Next.js remove
+automaticamente); a Vercel não faz esse unquoting — se você colar o mesmo
+texto (com as aspas) direto lá, o parsing quebra com um erro de decodificação
+(`DECODER routines::unsupported`, do Node/OpenSSL). `lib/google/sheetsClient.ts`
+já tolera as duas formas (com ou sem aspas envolventes), mas se aparecer esse
+erro depois de configurar credenciais novas na Vercel, é o primeiro lugar a
+checar.
+
 ### 7. Rodar localmente
 ```bash
 npm run dev
@@ -195,9 +204,15 @@ npm run hard-delete-expired -- --dias=30 --confirmar  # apaga de fato
 
 ## Status do projeto
 
-Código de todas as fases (0 a 7) do `docs/PLANO.md` implementado. O que
-ainda depende de uma ação sua, fora do alcance de um agente de código:
-preencher `.env.local`, rodar `supabase db push` + `npm run load-municipios`
-no seu projeto Supabase, criar o bucket de Storage, e compartilhar cada
-planilha do Google com a service account. Ver `docs/PLANO.md` para o
-detalhamento por fase.
+Ambiente de produção (Vercel + Supabase) configurado e operacional: todas as
+env vars preenchidas (Supabase, Google service account, `CRON_SECRET`),
+migrações aplicadas no banco, e o cron de sincronização diária ativo (ver
+"Automação" acima). Ver `docs/PLANO.md` para o detalhamento por fase de
+desenvolvimento.
+
+O que continua sendo trabalho manual **recorrente** (não é uma pendência de
+setup, é o fluxo normal de uso): para cada planilha nova, compartilhar com a
+service account e, na interface (`/fontes/[id]/mapeamento`), configurar o
+`field_mappings` da fonte — sem isso o cron roda mas retorna erro
+("não tem field_mappings configurados") para aquela fonte especificamente,
+sem afetar as demais.

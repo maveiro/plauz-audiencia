@@ -35,7 +35,9 @@ npm run dev
 
 ```
 app/            rotas Next.js (App Router) — pages, Server Actions, API routes
+  dashboard/    tela de acompanhamento diário, só leitura (ver ARCHITECTURE.md, seção "Dashboard")
 lib/            lógica de domínio (readers, sync, transforms, geo, validation, google, storage, supabase)
+  dashboard/    busca + agregação server-side para /dashboard (queries.ts, dateRange.ts)
 supabase/migrations/   schema versionado — única forma de alterar o banco
 scripts/        scripts standalone (rodados via tsx, fora do Next.js)
 docs/PLANO.md   roadmap por fase
@@ -59,6 +61,11 @@ docs/PLANO.md   roadmap por fase
   um `if` condicional por fonte espalhado pelo motor de sync.
 - Migrações são sempre um novo arquivo em `supabase/migrations/`, nunca uma
   edição de migração já aplicada nem uma alteração manual no dashboard.
+- Segredo multi-linha (ex: `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`) colado no
+  dashboard da Vercel não passa pelo unquoting que o `.env.local` recebe do
+  Next.js — evite colar com aspas duplas envolventes. O parsing em
+  `lib/google/sheetsClient.ts` já tolera as duas formas, mas isso não dispensa
+  colar certo: um erro `DECODER routines::unsupported` no sync é o sintoma.
 
 ## O que NÃO fazer
 
@@ -84,5 +91,11 @@ docs/PLANO.md   roadmap por fase
 3. Se mudou env vars usadas pela app: atualizar também no dashboard da
    Vercel e disparar um redeploy — variável nova/editada não afeta
    deployments já publicados.
-4. Mensagens de commit em português, focadas no *porquê*, não no *o quê*
+4. Rode `git status` antes de `git add`/`git commit` — é comum ter mais de
+   uma sessão de agente (ou o próprio usuário) trabalhando no repo ao mesmo
+   tempo. Se houver arquivos já staged que não são seus, commite só os seus
+   por pathspec (`git commit caminho/do/arquivo.ts -m "..."`) em vez de
+   `git add -A`/`git commit -a`, pra não misturar mudanças de outra sessão no
+   seu commit.
+5. Mensagens de commit em português, focadas no *porquê*, não no *o quê*
    (o diff já mostra o quê).
