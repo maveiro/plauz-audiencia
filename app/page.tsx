@@ -11,8 +11,14 @@ export default function Home() {
       </p>
       <div className="flex gap-4">
         <Link
-          href="/fontes"
+          href="/dashboard"
           className="rounded-full bg-zinc-900 px-5 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-300"
+        >
+          Ver dashboard
+        </Link>
+        <Link
+          href="/fontes"
+          className="rounded-full border border-zinc-300 px-5 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
         >
           Ver fontes cadastradas
         </Link>

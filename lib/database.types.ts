@@ -375,6 +375,59 @@ export interface Database {
           },
         ];
       };
+      geo_ia_logs: {
+        Row: {
+          id: string;
+          interessado_id: string;
+          cidade_informada: string | null;
+          estado_informada: string | null;
+          cidade_sugerida: string | null;
+          estado_sugerido: string | null;
+          confianca_ia: number | null;
+          confianca_similaridade: number | null;
+          aplicado: boolean;
+          modelo: string;
+          motivo: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          interessado_id: string;
+          cidade_informada?: string | null;
+          estado_informada?: string | null;
+          cidade_sugerida?: string | null;
+          estado_sugerido?: string | null;
+          confianca_ia?: number | null;
+          confianca_similaridade?: number | null;
+          aplicado: boolean;
+          modelo: string;
+          motivo?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          interessado_id?: string;
+          cidade_informada?: string | null;
+          estado_informada?: string | null;
+          cidade_sugerida?: string | null;
+          estado_sugerido?: string | null;
+          confianca_ia?: number | null;
+          confianca_similaridade?: number | null;
+          aplicado?: boolean;
+          modelo?: string;
+          motivo?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "geo_ia_logs_interessado_id_fkey";
+            columns: ["interessado_id"];
+            isOneToOne: false;
+            referencedRelation: "interessados";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       // Views "passthrough" (select * from ... where deleted_at is null),
@@ -394,6 +447,49 @@ export interface Database {
           artistas_distintos: number;
           artista_ids: string[];
           total_registros: number;
+        };
+        Relationships: [];
+      };
+      // Views de agregação do dashboard (0005_dashboard_views.sql) — ver
+      // ARCHITECTURE.md, seção "Dashboard".
+      dash_interessados_diarios: {
+        Row: {
+          dia: string;
+          evento_id: string;
+          evento_nome: string;
+          artista_id: string;
+          artista_nome: string;
+          total: number;
+          email_validos: number;
+          telefone_validos: number;
+        };
+        Relationships: [];
+      };
+      dash_qualidade_por_fonte: {
+        Row: {
+          source_id: string;
+          source_name: string;
+          tipo: "google_sheets" | "arquivo_upload";
+          status: "active" | "paused" | "error";
+          last_synced_at: string | null;
+          evento_id: string;
+          evento_nome: string;
+          artista_id: string;
+          artista_nome: string;
+          total: number;
+          email_validos: number;
+          telefone_validos: number;
+          local_pendentes: number;
+        };
+        Relationships: [];
+      };
+      dash_geografia: {
+        Row: {
+          cidade: string;
+          estado: string | null;
+          artista_id: string;
+          evento_id: string;
+          total: number;
         };
         Relationships: [];
       };

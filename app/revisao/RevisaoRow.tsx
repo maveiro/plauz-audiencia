@@ -8,14 +8,16 @@ export function RevisaoRow({
   nomeCompleto,
   cidadeInformada,
   estadoInformada,
+  sugestaoIA,
 }: {
   interessadoId: string;
   nomeCompleto: string | null;
   cidadeInformada: string | null;
   estadoInformada: string | null;
+  sugestaoIA?: { cidade: string | null; estado: string | null; motivo: string | null } | null;
 }) {
-  const [cidade, setCidade] = useState(cidadeInformada ?? "");
-  const [estado, setEstado] = useState(estadoInformada ?? "");
+  const [cidade, setCidade] = useState(sugestaoIA?.cidade ?? cidadeInformada ?? "");
+  const [estado, setEstado] = useState(sugestaoIA?.estado ?? estadoInformada ?? "");
   const [isPending, startTransition] = useTransition();
   const [done, setDone] = useState(false);
 
@@ -35,6 +37,12 @@ export function RevisaoRow({
         <p className="text-xs text-zinc-500">
           informado: {cidadeInformada || "—"} / {estadoInformada || "—"}
         </p>
+        {sugestaoIA?.cidade && (
+          <p className="text-xs text-indigo-600 dark:text-indigo-400">
+            IA sugere: {sugestaoIA.cidade} / {sugestaoIA.estado || "—"}
+            {sugestaoIA.motivo ? ` — ${sugestaoIA.motivo}` : ""}
+          </p>
+        )}
       </div>
       <input
         value={cidade}

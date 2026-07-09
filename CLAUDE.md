@@ -111,6 +111,23 @@ Ver `docs/PLANO.md` para o detalhamento de fases e
     delete: esquecer o filtro em uma query e um dado "excluído" reaparecer na
     interface.
 
+### Camada adicional: revisão de local assistida por IA
+
+Além do passo determinístico do princípio 6 (que roda automaticamente no
+sync), existe uma segunda camada, opcional e disparada manualmente pelo
+botão "Resolver com IA" na tela `/revisao` (`lib/geo/aiResolveGeografia.ts`):
+trata com IA (Claude) os casos que o passo determinístico deixou pendentes
+(apelidos, abreviações, erros de digitação — ex: "Beaga" → Belo
+Horizonte/MG), aplicando automaticamente só quando a IA reporta confiança
+alta **e** a sugestão bate com um município real em `municipios_ref` (mesma
+validação de similaridade do passo determinístico — evita a IA "alucinar"
+uma cidade inexistente). Casos ambíguos (ex: várias cidades listadas)
+continuam pendentes para revisão humana, mas a sugestão da IA pré-preenche o
+formulário. **Toda sugestão da IA é logada em `geo_ia_logs`, aplicada ou
+não** — nunca só as aplicadas. Essa camada é deliberadamente separada do
+motor de sync (não roda automaticamente a cada sincronização) para não
+acoplar uma dependência externa e custo variável ao caminho crítico do sync.
+
 ## Convenções de nomenclatura
 
 - Nomes de tabelas e colunas em `snake_case`, em português, refletindo o
@@ -153,6 +170,7 @@ GOOGLE_SERVICE_ACCOUNT_EMAIL=
 GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=
 SUPABASE_STORAGE_BUCKET=uploads-fontes  # bucket dos uploads de CSV/XLS
 CRON_SECRET=                     # para validar chamadas do Vercel Cron
+ANTHROPIC_API_KEY=               # server-side only; botão "Resolver com IA" em /revisao
 ```
 
 O arquivo local é `.env.local` (nunca commitado — coberto por `.env*` no

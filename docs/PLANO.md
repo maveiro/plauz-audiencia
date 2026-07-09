@@ -155,8 +155,12 @@ Google Sheets sincronizam sozinhas no intervalo configurado.
       responde diretamente "há sobreposição de público entre artistas?"
 - [ ] (Opcional, futuro) Verificação de deliverability de e-mail via serviço
       externo, rodada sob demanda
-- [ ] (Opcional, futuro) Views adicionais de análise: interessados por
-      evento/artista, taxa de validade de contato, etc.
+- [ ] Views adicionais de análise: interessados por evento/artista, taxa de
+      validade de contato, etc. — implementado como dashboard dedicado
+      (`/dashboard`, views `dash_*` em `0005_dashboard_views.sql`). Ver
+      ARCHITECTURE.md, seção "Dashboard". Checkbox segue desmarcado por
+      convenção deste arquivo (nota de status no topo) até validação contra
+      o ambiente real.
 - [ ] Job de limpeza definitiva: hard delete de fontes com `deleted_at`
       preenchido há mais de N dias (aciona o cascade e remove o arquivo do
       Storage) — rodado manualmente ou agendado, conforme preferência

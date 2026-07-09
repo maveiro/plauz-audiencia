@@ -7,10 +7,17 @@ import { google } from "googleapis";
  */
 export function getSheetsClient() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(
-    /\\n/g,
-    "\n",
-  );
+  let rawPrivateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.trim();
+  // Aspas duplas envolventes sobrevivem quando o valor é colado direto no
+  // dashboard da Vercel (ali não há o unquoting que o .env.local recebe).
+  if (
+    rawPrivateKey &&
+    rawPrivateKey.startsWith('"') &&
+    rawPrivateKey.endsWith('"')
+  ) {
+    rawPrivateKey = rawPrivateKey.slice(1, -1);
+  }
+  const privateKey = rawPrivateKey?.replace(/\\n/g, "\n");
 
   if (!email || !privateKey) {
     throw new Error(
