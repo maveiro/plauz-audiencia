@@ -49,8 +49,21 @@ export function mapRowToCanonical(
   return canonical;
 }
 
+/**
+ * Datas "DD/MM/YYYY" ou "MM/DD/YYYY" são ambíguas pra new Date() nativo do
+ * JS (assume MM/DD/YYYY, invertendo dia/mês em silêncio quando o dia é <=
+ * 12). Um field_mapping de submitted_at precisa passar por um transform
+ * explícito (parse_date_dmy / parse_date_mdy) que já resolve essa ambiguidade
+ * antes de chegar aqui — se um valor nesse formato ainda chegar cru, é sinal
+ * de mapeamento mal configurado. Preferível falhar visível (submitted_at
+ * nulo, perceptível no dashboard) a inverter a data em silêncio.
+ */
+const AMBIGUOUS_SLASH_DATE = /^\d{1,2}\/\d{1,2}\/\d{2,4}/;
+
 export function parseSubmittedAt(value: string): string | null {
-  if (!value.trim()) return null;
-  const parsed = new Date(value);
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (AMBIGUOUS_SLASH_DATE.test(trimmed)) return null;
+  const parsed = new Date(trimmed);
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }

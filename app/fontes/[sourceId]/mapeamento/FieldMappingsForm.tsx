@@ -14,6 +14,8 @@ const CANONICAL_FIELDS: FieldMappingInput["canonical_field"][] = [
   "submitted_at",
 ];
 
+const DATE_TRANSFORMS = ["parse_date_dmy", "parse_date_mdy"];
+
 export function FieldMappingsForm({
   sourceId,
   detectedColumns,
@@ -111,6 +113,14 @@ export function FieldMappingsForm({
             >
               remover
             </button>
+            {row.canonical_field === "submitted_at" &&
+              !DATE_TRANSFORMS.includes(row.transform ?? "") && (
+                <span className="text-xs text-amber-600 dark:text-amber-400">
+                  ⚠ escolha <code>parse_date_dmy</code> (planilha em pt-BR) ou{" "}
+                  <code>parse_date_mdy</code> (planilha em en-US) — sem isso a
+                  data de envio fica em branco.
+                </span>
+              )}
           </div>
         ))}
       </div>
