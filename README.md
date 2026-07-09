@@ -170,26 +170,18 @@ redeploy** — deployments já publicados não pegam o valor novo sozinhos (ver
 A rota `GET /api/cron/sync` sincroniza todas as fontes ativas do tipo
 `google_sheets` de uma vez, protegida por `CRON_SECRET` (a Vercel injeta o
 header `Authorization: Bearer $CRON_SECRET` automaticamente em chamadas de
-Cron Jobs quando essa env var está configurada). Por padrão **não há
-agendamento automático configurado** — o plano Hobby da Vercel só permite
-cron rodando no máximo 1x/dia, então a decisão foi deixar a sincronização de
-planilhas manual (botão "Sincronizar agora" em cada fonte) até haver
-necessidade real de automação. `vercel.json` já existe no repo (só com
-`"framework": "nextjs"`, necessário pro deploy funcionar); pra reativar o
-cron, adicione a chave `crons` nele:
+Cron Jobs quando essa env var está configurada). **Ativo**: `vercel.json`
+agenda 1x/dia, `"0 9 * * *"` (09:00 UTC = 06:00 horário de Brasília, fixo —
+o Brasil não usa horário de verão desde 2019). O plano Hobby da Vercel só
+permite cron no máximo 1x/dia; se precisar de mais frequência:
 
-- **1x/dia, de graça (Hobby):**
-  ```json
-  {
-    "framework": "nextjs",
-    "crons": [{ "path": "/api/cron/sync", "schedule": "0 6 * * *" }]
-  }
-  ```
-- **Mais frequente:** requer plano [Pro da Vercel](https://vercel.com/docs/cron-jobs/usage-and-pricing#hobby-plan) — mesma chave `crons`, com um `schedule` mais frequente (ex: `*/30 * * * *`).
+- **Plano [Pro da Vercel](https://vercel.com/docs/cron-jobs/usage-and-pricing#hobby-plan):** mesma chave `crons` em `vercel.json`, com um `schedule` mais frequente (ex: `*/30 * * * *`).
 - **Grátis e mais frequente, sem depender do plano da Vercel:** um serviço
   externo (ex: [cron-job.org](https://cron-job.org), GitHub Actions
   agendado) chamando `POST /api/cron/sync` com o header
-  `Authorization: Bearer <CRON_SECRET>` no intervalo desejado.
+  `Authorization: Bearer <CRON_SECRET>` no intervalo desejado — pode
+  coexistir com o cron nativo da Vercel ou substituí-lo (remova a chave
+  `crons` do `vercel.json` nesse caso).
 
 ## Manutenção
 
