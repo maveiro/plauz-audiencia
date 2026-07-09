@@ -51,6 +51,19 @@ Isso aplica as migrações em `supabase/migrations/` ao seu projeto Supabase
 (schema inicial + correções de constraint + função de normalização
 geográfica + view de sobreposição de público).
 
+Se `supabase login` (fluxo interativo via navegador) não estiver disponível
+no seu ambiente, use a alternativa que já existe no projeto — aplica direto
+via `DATABASE_URL` (preencha a senha real do banco no `.env.local` antes):
+```bash
+npm run apply-migrations
+```
+**Importante:** nenhuma das duas formas roda sozinha — se você adicionar uma
+migração nova, alguém precisa efetivamente rodar `supabase db push` ou
+`npm run apply-migrations` contra o banco de produção. Um arquivo `.sql`
+commitado e nunca aplicado é a causa mais provável de erro genérico do tipo
+"Algo deu errado" (Server Components) em produção nas páginas que dependem
+dele.
+
 Depois, popule `municipios_ref` (dados do IBGE, seed estático em
 `scripts/data/municipios-ibge.json`):
 ```bash
@@ -143,6 +156,14 @@ npm run dev
   recuperáveis por um tempo) antes de uma limpeza definitiva.
 
 Mais detalhes de arquitetura e decisões de design estão em `CLAUDE.md`.
+
+## Deploy na Vercel
+
+Configure as mesmas variáveis de `.env.local` (exceto `DATABASE_URL`, que não
+é usada pela aplicação) em Project Settings → Environment Variables, na
+Vercel. **Depois de adicionar ou editar uma env var lá, é preciso disparar um
+redeploy** — deployments já publicados não pegam o valor novo sozinhos (ver
+`ARCHITECTURE.md`, seção "Deploy").
 
 ## Automação (sincronização periódica)
 

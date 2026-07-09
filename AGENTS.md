@@ -75,7 +75,14 @@ docs/PLANO.md   roadmap por fase
 ## Antes de abrir um PR / commit
 
 1. `npm run typecheck && npm run lint && npm run build`
-2. Se mudou o schema: novo arquivo em `supabase/migrations/`, testado contra
-   um projeto Supabase real quando possível.
-3. Mensagens de commit em português, focadas no *porquê*, não no *o quê*
+2. Se mudou o schema: novo arquivo em `supabase/migrations/` **e efetivamente
+   rodado** (`supabase db push` ou `npm run apply-migrations`) contra o
+   projeto Supabase real usado pela aplicação — commitar o `.sql` sem
+   aplicá-lo já causou erro em produção neste projeto (view/função inexistente
+   apesar da migração existir no repo). Confirme com uma query direta se tem
+   dúvida se já rodou.
+3. Se mudou env vars usadas pela app: atualizar também no dashboard da
+   Vercel e disparar um redeploy — variável nova/editada não afeta
+   deployments já publicados.
+4. Mensagens de commit em português, focadas no *porquê*, não no *o quê*
    (o diff já mostra o quê).

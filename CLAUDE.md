@@ -162,6 +162,17 @@ e uma URL de JWKS — o código deste projeto não as usa (usa o par
 `SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_ANON_KEY` acima); não precisam ser
 preenchidas.
 
+Opcionalmente, também em `.env.local` (nunca em `.env.example` — não são
+usados pela aplicação nem por nenhum script versionado, servem só para
+automação ad-hoc via agente de IA/CLI quando `node`/`vercel` CLI/`psql` não
+estão disponíveis no ambiente):
+```
+VERCEL_TOKEN=              # gerado em vercel.com/account/tokens
+SUPABASE_ACCESS_TOKEN=     # gerado em supabase.com/dashboard/account/tokens (Management API)
+```
+Com esses dois e `curl`, dá pra ler/editar env vars do projeto na Vercel e
+rodar SQL direto no Supabase sem precisar da senha do banco.
+
 O usuário compartilha cada planilha do Google (somente leitura) com o e-mail
 da service account. Isso é um passo manual, feito uma vez por planilha — a
 aplicação não pode automatizar esse compartilhamento.

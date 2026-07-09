@@ -136,8 +136,19 @@ chamada por qualquer scheduler externo.
   projeto foi importado com o Framework Preset errado no dashboard — sem
   isso, a Vercel procura uma pasta `public/` estática em vez de usar o
   adapter do Next.js). Variáveis de ambiente configuradas no dashboard da
-  Vercel, mesmas chaves do `.env.example`.
+  Vercel, mesmas chaves do `.env.example`. **Adicionar ou editar uma env var
+  não afeta deployments já publicados** — as funções serverless capturam o
+  valor no momento do build/deploy; é preciso disparar um redeploy (dashboard
+  → Deployments → "Redeploy", ou um novo push) para o valor novo entrar em
+  vigor.
 - **Supabase**: schema versionado por `supabase db push` a partir de
-  `supabase/migrations/`. `municipios_ref` é populada uma vez por
-  `npm run load-municipios` (não faz parte das migrações porque é dado, não
-  schema).
+  `supabase/migrations/` (alternativa sem o fluxo interativo de
+  `supabase login`: `npm run apply-migrations`, que usa `DATABASE_URL`
+  diretamente — ver script em `scripts/apply-migrations.ts`).
+  `municipios_ref` é populada uma vez por `npm run load-municipios` (não faz
+  parte das migrações porque é dado, não schema). **Um arquivo `.sql` novo em
+  `supabase/migrations/` só existe no schema real depois de efetivamente
+  rodado** — não há CI nem hook que aplique migrações automaticamente ao
+  commitar ou dar deploy. Depois de criar uma migração (ou ao suspeitar que
+  uma não foi aplicada), confirme direto no banco antes de assumir que está
+  tudo certo.
