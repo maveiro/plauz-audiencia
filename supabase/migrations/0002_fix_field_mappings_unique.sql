@@ -12,12 +12,22 @@
 -- mesma coluna pode alimentar mais de um campo canônico, mas não pode
 -- mapear a mesma coluna para o mesmo campo canônico duas vezes.
 
-alter table field_mappings
-  drop constraint field_mappings_source_id_source_field_key;
+-- Idempotente de propósito (checa antes de agir) para poder rodar com
+-- segurança tanto via `supabase db push` quanto via execução manual/script.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'field_mappings_source_id_source_field_canonical_field_key'
+  ) then
+    alter table field_mappings
+      drop constraint if exists field_mappings_source_id_source_field_key;
 
-alter table field_mappings
-  add constraint field_mappings_source_id_source_field_canonical_field_key
-  unique (source_id, source_field, canonical_field);
+    alter table field_mappings
+      add constraint field_mappings_source_id_source_field_canonical_field_key
+      unique (source_id, source_field, canonical_field);
+  end if;
+end $$;
 
 comment on constraint field_mappings_source_id_source_field_canonical_field_key
   on field_mappings is

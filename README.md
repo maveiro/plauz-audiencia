@@ -38,7 +38,9 @@ npm install
 
 ### 3. Variáveis de ambiente
 Copie `.env.example` para `.env.local` e preencha (ver `CLAUDE.md` para a
-lista completa e o papel de cada variável).
+lista completa e o papel de cada variável). `DATABASE_URL` é opcional — só é
+necessária se você for rodar SQL direto via `psql`/Supabase CLI; a aplicação
+em si usa apenas `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_ANON_KEY`.
 
 ### 4. Banco de dados
 ```bash

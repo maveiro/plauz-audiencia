@@ -12,8 +12,7 @@
  * Sem --confirmar, roda em modo "dry run" (só lista o que seria apagado).
  */
 import "./load-env";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "../lib/database.types";
+import { createAdminClient } from "../lib/supabase/createAdminClient";
 import { getStorageBucket } from "../lib/storage/uploadArquivoFonte";
 
 const DEFAULT_DIAS = 30;
@@ -34,9 +33,7 @@ async function main() {
   if (!url || !serviceRoleKey) {
     throw new Error("SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY precisam estar definidas.");
   }
-  const supabase = createClient<Database>(url, serviceRoleKey, {
-    auth: { persistSession: false },
-  });
+  const supabase = createAdminClient(url, serviceRoleKey);
 
   const limite = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString();
 

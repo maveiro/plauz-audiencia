@@ -9,7 +9,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "load-municipios": "tsx scripts/load-municipios.ts",
-    "hard-delete-expired": "tsx scripts/hard-delete-expired.ts"
+    "hard-delete-expired": "tsx scripts/hard-delete-expired.ts",
+    "apply-migrations": "tsx scripts/apply-migrations.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
@@ -19,17 +20,21 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "server-only": "^0.0.1",
+    "ws": "^8.21.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/papaparse": "^5.3.15",
+    "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/ws": "^8.18.1",
     "dotenv": "^16.4.5",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
+    "pg": "^8.22.0",
     "tailwindcss": "^4",
     "tsx": "^4.19.1",
     "typescript": "^5"

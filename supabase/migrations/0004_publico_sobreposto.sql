@@ -6,7 +6,9 @@
 -- query/view, sem uma entidade "pessoa" unificada no schema (CLAUDE.md,
 -- seção "O que este projeto explicitamente NÃO faz").
 
-create view publico_sobreposto as
+-- create or replace (em vez de create) para poder rodar com segurança mais
+-- de uma vez, tanto via `supabase db push` quanto via execução manual/script.
+create or replace view publico_sobreposto as
   select
     email,
     count(distinct artista_id) as artistas_distintos,

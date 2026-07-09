@@ -1,6 +1,5 @@
 import "server-only";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/database.types";
+import { createAdminClient } from "./createAdminClient";
 
 /**
  * Client server-side, autenticado com a service role key (ignora RLS).
@@ -17,7 +16,5 @@ export function createServiceRoleClient() {
     );
   }
 
-  return createClient<Database>(url, serviceRoleKey, {
-    auth: { persistSession: false },
-  });
+  return createAdminClient(url, serviceRoleKey);
 }

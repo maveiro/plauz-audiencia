@@ -10,8 +10,7 @@
 import "./load-env";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "../lib/database.types";
+import { createAdminClient } from "../lib/supabase/createAdminClient";
 import { normalizeMunicipioName } from "../lib/geo/normalize";
 
 const BATCH_SIZE = 500;
@@ -29,10 +28,7 @@ async function main() {
       "SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY precisam estar definidas em .env.local.",
     );
   }
-
-  const supabase = createClient<Database>(url, serviceRoleKey, {
-    auth: { persistSession: false },
-  });
+  const supabase = createAdminClient(url, serviceRoleKey);
 
   const seedPath = path.join(__dirname, "data", "municipios-ibge.json");
   const seed: MunicipioSeed[] = JSON.parse(readFileSync(seedPath, "utf-8"));

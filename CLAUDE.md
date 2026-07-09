@@ -148,11 +148,19 @@ Ver `docs/PLANO.md` para o detalhamento de fases e
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=       # server-side only
 SUPABASE_ANON_KEY=               # se necessário no client
+DATABASE_URL=                    # opcional; não usada pela app, só para psql/CLI direto no Postgres
 GOOGLE_SERVICE_ACCOUNT_EMAIL=
 GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=
 SUPABASE_STORAGE_BUCKET=uploads-fontes  # bucket dos uploads de CSV/XLS
 CRON_SECRET=                     # para validar chamadas do Vercel Cron
 ```
+
+O arquivo local é `.env.local` (nunca commitado — coberto por `.env*` no
+`.gitignore`, com exceção do `.env.example`). O dashboard do Supabase pode
+exibir também chaves no formato novo (`sb_publishable_...`/`sb_secret_...`)
+e uma URL de JWKS — o código deste projeto não as usa (usa o par
+`SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_ANON_KEY` acima); não precisam ser
+preenchidas.
 
 O usuário compartilha cada planilha do Google (somente leitura) com o e-mail
 da service account. Isso é um passo manual, feito uma vez por planilha — a
