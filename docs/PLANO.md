@@ -128,6 +128,11 @@ tocar em SQL.
 
 ## Fase 5 — Automação
 
+> Decisão operacional: `vercel.json` não está no repo por padrão porque o
+> plano Hobby só permite cron 1x/dia. A rota existe e funciona
+> (`/api/cron/sync`); sincronização de Sheets é manual por enquanto. Ver
+> README.md, seção "Automação", para reativar.
+
 - [ ] Configurar Vercel Cron (`vercel.json`) chamando uma rota que sincroniza
       todas as fontes ativas do tipo `google_sheets` (uploads não entram no
       Cron — são reprocessados apenas quando reenviados)

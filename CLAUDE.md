@@ -30,7 +30,10 @@ pessoa interessada em mais de um).
 - **Parsing de arquivo**: `papaparse` (CSV) e `xlsx`/SheetJS (Excel)
 - **Agendamento**: Vercel Cron chamando uma rota de API interna (apenas para
   fontes do tipo `google_sheets` — uploads não têm agendamento, são reenviados
-  manualmente)
+  manualmente). A rota (`/api/cron/sync`) existe e funciona independente de
+  agendamento; o `vercel.json` que a agenda não está no repo por padrão
+  porque o plano Hobby só permite cron 1x/dia — ver README.md, seção
+  "Automação", para as opções de reativar.
 - **Linguagem**: TypeScript em todo o projeto (frontend, API routes, scripts)
 
 ## Arquitetura de dados (não mudar sem revisão)

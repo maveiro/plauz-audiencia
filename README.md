@@ -20,7 +20,7 @@ nunca alterar a fonte original.
 - [Supabase](https://supabase.com) — banco de dados (Postgres) e armazenamento de arquivos (Storage)
 - Google Sheets API — leitura das planilhas, via service account
 - `papaparse` / `xlsx` (SheetJS) — leitura de arquivos CSV/Excel enviados por upload
-- Vercel Cron — sincronização automática periódica (apenas fontes do tipo Google Sheets)
+- Vercel Cron — sincronização automática periódica (apenas fontes do tipo Google Sheets; ver nota sobre o plano Hobby abaixo)
 
 ## Setup local
 
@@ -129,6 +129,26 @@ npm run dev
   recuperáveis por um tempo) antes de uma limpeza definitiva.
 
 Mais detalhes de arquitetura e decisões de design estão em `CLAUDE.md`.
+
+## Automação (sincronização periódica)
+
+A rota `POST /api/cron/sync` sincroniza todas as fontes ativas do tipo
+`google_sheets` de uma vez, protegida por `CRON_SECRET` (header
+`Authorization: Bearer <CRON_SECRET>`). Por padrão **não há agendamento
+automático configurado** — o plano Hobby da Vercel só permite cron rodando
+no máximo 1x/dia, então a decisão foi deixar a sincronização de planilhas
+manual (botão "Sincronizar agora" em cada fonte) até haver necessidade real
+de automação. Opções para reativar, dependendo da frequência desejada:
+
+- **1x/dia, de graça (Hobby):** crie `vercel.json` na raiz com:
+  ```json
+  { "crons": [{ "path": "/api/cron/sync", "schedule": "0 6 * * *" }] }
+  ```
+- **Mais frequente:** requer plano [Pro da Vercel](https://vercel.com/docs/cron-jobs/usage-and-pricing#hobby-plan) — mesmo `vercel.json`, com um `schedule` mais frequente (ex: `*/30 * * * *`).
+- **Grátis e mais frequente, sem depender do plano da Vercel:** um serviço
+  externo (ex: [cron-job.org](https://cron-job.org), GitHub Actions
+  agendado) chamando `POST /api/cron/sync` com o header
+  `Authorization: Bearer <CRON_SECRET>` no intervalo desejado.
 
 ## Manutenção
 
