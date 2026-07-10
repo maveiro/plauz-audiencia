@@ -12,7 +12,13 @@ import { QualityTable } from "./QualityTable";
 export const dynamic = "force-dynamic";
 
 interface DashboardPageProps {
-  searchParams: Promise<{ periodo?: string; artista_id?: string }>;
+  searchParams: Promise<{
+    periodo?: string;
+    artista_id?: string;
+    evento_id?: string;
+    cidade?: string;
+    estado?: string;
+  }>;
 }
 
 function formatDelta(deltaPercentual: number | null) {
@@ -25,8 +31,14 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const params = await searchParams;
   const periodo: Periodo = isPeriodo(params.periodo) ? params.periodo : "30d";
   const artistaId = params.artista_id || null;
+  const eventoId = params.evento_id || null;
+  const cidade = params.cidade || null;
+  const estado = params.estado || null;
 
-  const dados = await loadDashboardData(periodo, artistaId);
+  const dados = await loadDashboardData(periodo, artistaId, eventoId, cidade, estado);
+
+  const eventoLabel = eventoId ? (dados.ranking.find((r) => r.eventoId === eventoId)?.label ?? null) : null;
+  const cidadeLabel = cidade ? (estado ? `${cidade} — ${estado}` : cidade) : null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -37,7 +49,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             Acompanhamento diário de interessados, por evento e artista.
           </p>
         </div>
-        <FilterBar periodo={periodo} artistaId={artistaId} artistas={dados.artistas} />
+        <FilterBar
+          periodo={periodo}
+          artistaId={artistaId}
+          artistas={dados.artistas}
+          eventoLabel={eventoLabel}
+          cidadeLabel={cidadeLabel}
+        />
       </div>
 
       <AlertBanner alertas={dados.alertas} />
@@ -71,11 +89,17 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <section className="flex flex-col gap-3">
-          <h2 className="text-lg font-medium">Ranking de eventos</h2>
+          <div>
+            <h2 className="text-lg font-medium">Ranking de eventos</h2>
+            <p className="text-xs text-zinc-500">Clique numa barra para filtrar o dashboard por esse evento.</p>
+          </div>
           <RankingChart ranking={dados.ranking} />
         </section>
         <section className="flex flex-col gap-3">
-          <h2 className="text-lg font-medium">Top cidades</h2>
+          <div>
+            <h2 className="text-lg font-medium">Top cidades</h2>
+            <p className="text-xs text-zinc-500">Clique numa barra para filtrar o dashboard por essa cidade.</p>
+          </div>
           <GeoChart geografia={dados.geografia} />
         </section>
       </div>

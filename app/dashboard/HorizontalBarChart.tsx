@@ -1,8 +1,10 @@
 "use client";
 
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, LabelList } from "recharts";
+import type { MouseEvent } from "react";
+import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, Tooltip, LabelList } from "recharts";
 
 export interface HorizontalBarDatum {
+  id: string;
   label: string;
   total: number;
 }
@@ -10,11 +12,14 @@ export interface HorizontalBarDatum {
 interface HorizontalBarChartProps {
   data: HorizontalBarDatum[];
   emptyMessage: string;
+  /** Quando presente, cada barra vira clicável e chama onBarClick(id) — clicar na barra já ativa (activeId) deve limpar o filtro (fica a cargo de quem chama). */
+  onBarClick?: (id: string) => void;
+  activeId?: string | null;
 }
 
 const ROW_HEIGHT = 32;
 
-export function HorizontalBarChart({ data, emptyMessage }: HorizontalBarChartProps) {
+export function HorizontalBarChart({ data, emptyMessage, onBarClick, activeId }: HorizontalBarChartProps) {
   if (data.length === 0) {
     return <p className="text-sm text-zinc-500">{emptyMessage}</p>;
   }
@@ -45,7 +50,28 @@ export function HorizontalBarChart({ data, emptyMessage }: HorizontalBarChartPro
             fontSize: 12,
           }}
         />
-        <Bar dataKey="total" fill="var(--series-1)" radius={[0, 4, 4, 0]} maxBarSize={18}>
+        <Bar
+          dataKey="total"
+          fill="var(--series-1)"
+          radius={[0, 4, 4, 0]}
+          maxBarSize={18}
+          onClick={
+            onBarClick
+              ? (d: { payload?: HorizontalBarDatum }, _index: number, _e: MouseEvent) => {
+                  if (d.payload) onBarClick(d.payload.id);
+                }
+              : undefined
+          }
+          cursor={onBarClick ? "pointer" : undefined}
+        >
+          {onBarClick
+            ? data.map((d) => (
+                <Cell
+                  key={d.id}
+                  fill={activeId && d.id !== activeId ? "var(--series-outros)" : "var(--series-1)"}
+                />
+              ))
+            : null}
           <LabelList
             dataKey="total"
             position="right"

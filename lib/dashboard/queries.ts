@@ -12,6 +12,10 @@ const TOP_CIDADES = 10;
 // que isso são truncadas silenciosamente (sem erro, só dado faltando).
 const PAGE_SIZE = 1000;
 
+// Sem ORDER BY explícito, o Postgres não garante a mesma ordem de linhas
+// entre execuções separadas da mesma query — paginar com .range() em cima
+// disso pode pular ou duplicar linhas entre páginas. Por isso buildPage
+// sempre precisa incluir um .order() determinístico (ver chamadas abaixo).
 async function fetchAllRows<T>(
   buildPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
   label: string,
@@ -43,6 +47,7 @@ export interface TrendPoint {
 }
 
 export interface RankingItem {
+  eventoId: string;
   label: string;
   total: number;
 }
@@ -149,6 +154,9 @@ function buildTrend(rows: DailyRow[], groupBy: "artista" | "evento"): DashboardD
 export async function loadDashboardData(
   periodo: Periodo,
   artistaId: string | null,
+  eventoId: string | null,
+  cidade: string | null,
+  estado: string | null,
 ): Promise<DashboardData> {
   const supabase = createServiceRoleClient();
   const { atual, anterior } = resolveDateRange(periodo);
@@ -169,8 +177,17 @@ export async function loadDashboardData(
       .select("dia, evento_id, evento_nome, artista_id, artista_nome, total, email_validos, telefone_validos")
       .gte("dia", buscaInicio)
       .lte("dia", atual.fim)
+      .order("dia", { ascending: true })
+      .order("evento_id", { ascending: true })
+      .order("cidade", { ascending: true, nullsFirst: true })
+      .order("estado", { ascending: true, nullsFirst: true })
       .range(from, to);
     if (artistaId) q = q.eq("artista_id", artistaId);
+    if (eventoId) q = q.eq("evento_id", eventoId);
+    if (cidade) {
+      q = q.eq("cidade", cidade);
+      if (estado) q = q.eq("estado", estado);
+    }
     return q;
   }, "dash_interessados_diarios");
 
@@ -211,7 +228,7 @@ export async function loadDashboardData(
   const rankingMap = new Map<string, RankingItem>();
   for (const r of doPeriodoAtual) {
     const label = artistaId ? r.eventoNome : `${r.artistaNome} — ${r.eventoNome}`;
-    const item = rankingMap.get(r.eventoId) ?? { label, total: 0 };
+    const item = rankingMap.get(r.eventoId) ?? { eventoId: r.eventoId, label, total: 0 };
     item.total += r.total;
     rankingMap.set(r.eventoId, item);
   }
@@ -221,8 +238,20 @@ export async function loadDashboardData(
     let q = supabase
       .from("dash_geografia")
       .select("cidade, estado, artista_id, evento_id, total")
+      .gte("dia", atual.inicio)
+      .lte("dia", atual.fim)
+      .order("cidade", { ascending: true })
+      .order("estado", { ascending: true, nullsFirst: true })
+      .order("artista_id", { ascending: true })
+      .order("evento_id", { ascending: true })
+      .order("dia", { ascending: true })
       .range(from, to);
     if (artistaId) q = q.eq("artista_id", artistaId);
+    if (eventoId) q = q.eq("evento_id", eventoId);
+    if (cidade) {
+      q = q.eq("cidade", cidade);
+      if (estado) q = q.eq("estado", estado);
+    }
     return q;
   }, "dash_geografia");
 
@@ -235,20 +264,45 @@ export async function loadDashboardData(
   }
   const geografia = [...geografiaMap.values()].sort((a, b) => b.total - a.total).slice(0, TOP_CIDADES);
 
-  let qualidadeQuery = supabase
-    .from("dash_qualidade_por_fonte")
-    .select(
-      "source_id, source_name, tipo, status, last_synced_at, evento_nome, artista_id, artista_nome, total, email_validos, telefone_validos, local_pendentes",
-    );
-  if (artistaId) qualidadeQuery = qualidadeQuery.eq("artista_id", artistaId);
-  const { data: qualidadeRaw, error: qualidadeError } = await qualidadeQuery;
-  if (qualidadeError) {
-    throw new Error(`Falha ao carregar dash_qualidade_por_fonte: ${qualidadeError.message}`);
+  const qualidadeRawSplit = await fetchAllRows((from, to) => {
+    let q = supabase
+      .from("dash_qualidade_por_fonte")
+      .select(
+        "source_id, source_name, tipo, status, last_synced_at, evento_id, evento_nome, artista_id, artista_nome, total, email_validos, telefone_validos, local_pendentes",
+      )
+      .order("source_id", { ascending: true })
+      .order("cidade", { ascending: true, nullsFirst: true })
+      .order("estado", { ascending: true, nullsFirst: true })
+      .range(from, to);
+    if (artistaId) q = q.eq("artista_id", artistaId);
+    if (eventoId) q = q.eq("evento_id", eventoId);
+    if (cidade) {
+      q = q.eq("cidade", cidade);
+      if (estado) q = q.eq("estado", estado);
+    }
+    return q;
+  }, "dash_qualidade_por_fonte");
+
+  // dash_qualidade_por_fonte agora tem uma linha por fonte×cidade (0008) —
+  // recolapsa por source_id aqui, senão uma fonte com leads de várias
+  // cidades apareceria duplicada na tabela e geraria alertas repetidos.
+  const qualidadeBySource = new Map<string, (typeof qualidadeRawSplit)[number]>();
+  for (const r of qualidadeRawSplit) {
+    const existing = qualidadeBySource.get(r.source_id);
+    if (existing) {
+      existing.total += r.total;
+      existing.email_validos += r.email_validos;
+      existing.telefone_validos += r.telefone_validos;
+      existing.local_pendentes += r.local_pendentes;
+    } else {
+      qualidadeBySource.set(r.source_id, { ...r });
+    }
   }
+  const qualidadeRaw = [...qualidadeBySource.values()];
 
   const agora = new Date();
   const alertas: Alerta[] = [];
-  const qualidadePorFonte: FonteQualidade[] = (qualidadeRaw ?? []).map((r) => {
+  const qualidadePorFonte: FonteQualidade[] = qualidadeRaw.map((r) => {
     if (r.status === "error") {
       alertas.push({
         sourceId: r.source_id,
