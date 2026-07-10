@@ -1,6 +1,5 @@
 "use client";
 
-import type { MouseEvent } from "react";
 import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, Tooltip, LabelList } from "recharts";
 
 export interface HorizontalBarDatum {
@@ -55,13 +54,10 @@ export function HorizontalBarChart({ data, emptyMessage, onBarClick, activeId }:
           fill="var(--series-1)"
           radius={[0, 4, 4, 0]}
           maxBarSize={18}
-          onClick={
-            onBarClick
-              ? (d: { payload?: HorizontalBarDatum }, _index: number, _e: MouseEvent) => {
-                  if (d.payload) onBarClick(d.payload.id);
-                }
-              : undefined
-          }
+          onClick={(entry) => {
+            const datum = (entry as { payload?: HorizontalBarDatum }).payload;
+            if (onBarClick && datum) onBarClick(datum.id);
+          }}
           cursor={onBarClick ? "pointer" : undefined}
         >
           {onBarClick
