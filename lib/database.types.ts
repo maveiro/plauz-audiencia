@@ -452,6 +452,9 @@ export interface Database {
       };
       // Views de agregação do dashboard (0005_dashboard_views.sql) — ver
       // ARCHITECTURE.md, seção "Dashboard".
+      // cidade/estado/dia abaixo foram adicionados na 0008_dash_filtros_clicaveis.sql
+      // (filtro por clique nos gráficos de cidade/evento) — ver CLAUDE.md,
+      // seção "Camada adicional: dashboard".
       dash_interessados_diarios: {
         Row: {
           dia: string;
@@ -462,6 +465,8 @@ export interface Database {
           total: number;
           email_validos: number;
           telefone_validos: number;
+          cidade: string | null;
+          estado: string | null;
         };
         Relationships: [];
       };
@@ -480,6 +485,8 @@ export interface Database {
           email_validos: number;
           telefone_validos: number;
           local_pendentes: number;
+          cidade: string | null;
+          estado: string | null;
         };
         Relationships: [];
       };
@@ -490,6 +497,7 @@ export interface Database {
           artista_id: string;
           evento_id: string;
           total: number;
+          dia: string;
         };
         Relationships: [];
       };
