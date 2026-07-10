@@ -7,6 +7,30 @@ const MAX_SERIES = 8;
 const TOP_EVENTOS = 10;
 const TOP_CIDADES = 10;
 
+// O PostgREST hospedado pelo Supabase limita cada resposta a 1000 linhas
+// (db-max-rows), mesmo pedindo mais — sem paginar, views com mais linhas
+// que isso são truncadas silenciosamente (sem erro, só dado faltando).
+const PAGE_SIZE = 1000;
+
+async function fetchAllRows<T>(
+  buildPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+  label: string,
+): Promise<T[]> {
+  const rows: T[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await buildPage(from, from + PAGE_SIZE - 1);
+    if (error) {
+      throw new Error(`Falha ao carregar ${label}: ${error.message}`);
+    }
+    if (!data || data.length === 0) break;
+    rows.push(...data);
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return rows;
+}
+
 export interface TrendSeries {
   key: string;
   label: string;
@@ -139,18 +163,18 @@ export async function loadDashboardData(
   }
 
   const buscaInicio = anterior?.inicio ?? atual.inicio;
-  let diariosQuery = supabase
-    .from("dash_interessados_diarios")
-    .select("dia, evento_id, evento_nome, artista_id, artista_nome, total, email_validos, telefone_validos")
-    .gte("dia", buscaInicio)
-    .lte("dia", atual.fim);
-  if (artistaId) diariosQuery = diariosQuery.eq("artista_id", artistaId);
-  const { data: diariosRaw, error: diariosError } = await diariosQuery;
-  if (diariosError) {
-    throw new Error(`Falha ao carregar dash_interessados_diarios: ${diariosError.message}`);
-  }
+  const diariosRaw = await fetchAllRows((from, to) => {
+    let q = supabase
+      .from("dash_interessados_diarios")
+      .select("dia, evento_id, evento_nome, artista_id, artista_nome, total, email_validos, telefone_validos")
+      .gte("dia", buscaInicio)
+      .lte("dia", atual.fim)
+      .range(from, to);
+    if (artistaId) q = q.eq("artista_id", artistaId);
+    return q;
+  }, "dash_interessados_diarios");
 
-  const diarios: DailyRow[] = (diariosRaw ?? []).map((r) => ({
+  const diarios: DailyRow[] = diariosRaw.map((r) => ({
     dia: r.dia,
     eventoId: r.evento_id,
     eventoNome: r.evento_nome,
@@ -193,16 +217,17 @@ export async function loadDashboardData(
   }
   const ranking = [...rankingMap.values()].sort((a, b) => b.total - a.total).slice(0, TOP_EVENTOS);
 
-  let geografiaQuery = supabase
-    .from("dash_geografia")
-    .select("cidade, estado, artista_id, evento_id, total");
-  if (artistaId) geografiaQuery = geografiaQuery.eq("artista_id", artistaId);
-  const { data: geografiaRaw, error: geografiaError } = await geografiaQuery;
-  if (geografiaError) {
-    throw new Error(`Falha ao carregar dash_geografia: ${geografiaError.message}`);
-  }
+  const geografiaRaw = await fetchAllRows((from, to) => {
+    let q = supabase
+      .from("dash_geografia")
+      .select("cidade, estado, artista_id, evento_id, total")
+      .range(from, to);
+    if (artistaId) q = q.eq("artista_id", artistaId);
+    return q;
+  }, "dash_geografia");
+
   const geografiaMap = new Map<string, GeografiaItem>();
-  for (const r of geografiaRaw ?? []) {
+  for (const r of geografiaRaw) {
     const key = `${r.cidade}|${r.estado ?? ""}`;
     const item = geografiaMap.get(key) ?? { cidade: r.cidade, estado: r.estado, total: 0 };
     item.total += r.total;
