@@ -454,7 +454,9 @@ export interface Database {
       // ARCHITECTURE.md, seção "Dashboard".
       // cidade/estado/dia abaixo foram adicionados na 0008_dash_filtros_clicaveis.sql
       // (filtro por clique nos gráficos de cidade/evento) — ver CLAUDE.md,
-      // seção "Camada adicional: dashboard".
+      // seção "Camada adicional: dashboard". data_desconhecida veio da
+      // 0009_dash_diarios_data_desconhecida.sql. source_id veio da
+      // 0010_dash_fonte_cidade_filtros.sql (filtro por fonte no dashboard).
       dash_interessados_diarios: {
         Row: {
           dia: string;
@@ -467,6 +469,8 @@ export interface Database {
           telefone_validos: number;
           cidade: string | null;
           estado: string | null;
+          data_desconhecida: boolean;
+          source_id: string;
         };
         Relationships: [];
       };
@@ -490,6 +494,8 @@ export interface Database {
         };
         Relationships: [];
       };
+      // source_id veio da 0010_dash_fonte_cidade_filtros.sql (filtro por
+      // fonte no dashboard).
       dash_geografia: {
         Row: {
           cidade: string;
@@ -498,6 +504,17 @@ export interface Database {
           evento_id: string;
           total: number;
           dia: string;
+          source_id: string;
+        };
+        Relationships: [];
+      };
+      // Adicionada na 0010_dash_fonte_cidade_filtros.sql — lista distinta de
+      // cidade/estado presentes em interessados_ativos, sem filtro de
+      // período/artista/evento, pro dropdown de cidade do dashboard.
+      dash_cidades_disponiveis: {
+        Row: {
+          cidade: string;
+          estado: string | null;
         };
         Relationships: [];
       };

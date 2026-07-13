@@ -81,6 +81,8 @@ export interface Alerta {
 
 export interface DashboardData {
   artistas: { id: string; nome: string }[];
+  fontes: { id: string; label: string }[];
+  cidades: { cidade: string; estado: string | null }[];
   kpis: {
     totalPeriodo: number;
     deltaPercentual: number | null;
@@ -88,6 +90,7 @@ export interface DashboardData {
     contatoUtilizavelPercentual: number | null;
     fontesComProblema: number;
     fontesTotal: number;
+    semDataPeriodo: number;
   };
   tendencia: { data: TrendPoint[]; series: TrendSeries[] };
   ranking: RankingItem[];
@@ -106,6 +109,7 @@ interface DailyRow {
   total: number;
   emailValidos: number;
   telefoneValidos: number;
+  dataDesconhecida: boolean;
 }
 
 function buildTrend(rows: DailyRow[], groupBy: "artista" | "evento"): DashboardData["tendencia"] {
@@ -155,6 +159,7 @@ export async function loadDashboardData(
   periodo: Periodo,
   artistaId: string | null,
   eventoId: string | null,
+  fonteId: string | null,
   cidade: string | null,
   estado: string | null,
 ): Promise<DashboardData> {
@@ -170,11 +175,48 @@ export async function loadDashboardData(
     throw new Error(`Falha ao carregar artistas: ${artistasError.message}`);
   }
 
+  // Fontes e cidades disponíveis pros dropdowns de filtro — buscadas sem
+  // nenhum filtro aplicado (igual a `artistas` acima), senão a opção
+  // selecionada poderia sumir do próprio seletor ao combinar com outro
+  // filtro ativo.
+  const fontesRaw = await fetchAllRows(
+    (from, to) =>
+      supabase
+        .from("dash_qualidade_por_fonte")
+        .select("source_id, source_name, evento_nome, artista_nome")
+        .order("source_id", { ascending: true })
+        .range(from, to),
+    "dash_qualidade_por_fonte (lista de fontes)",
+  );
+  const fontesMap = new Map<string, { id: string; label: string }>();
+  for (const r of fontesRaw) {
+    if (!fontesMap.has(r.source_id)) {
+      fontesMap.set(r.source_id, {
+        id: r.source_id,
+        label: `${r.artista_nome} — ${r.evento_nome} — ${r.source_name}`,
+      });
+    }
+  }
+  const fontes = [...fontesMap.values()].sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+
+  const cidades = await fetchAllRows(
+    (from, to) =>
+      supabase
+        .from("dash_cidades_disponiveis")
+        .select("cidade, estado")
+        .order("cidade", { ascending: true })
+        .order("estado", { ascending: true, nullsFirst: true })
+        .range(from, to),
+    "dash_cidades_disponiveis",
+  );
+
   const buscaInicio = anterior?.inicio ?? atual.inicio;
   const diariosRaw = await fetchAllRows((from, to) => {
     let q = supabase
       .from("dash_interessados_diarios")
-      .select("dia, evento_id, evento_nome, artista_id, artista_nome, total, email_validos, telefone_validos")
+      .select(
+        "dia, evento_id, evento_nome, artista_id, artista_nome, total, email_validos, telefone_validos, data_desconhecida",
+      )
       .gte("dia", buscaInicio)
       .lte("dia", atual.fim)
       .order("dia", { ascending: true })
@@ -184,6 +226,7 @@ export async function loadDashboardData(
       .range(from, to);
     if (artistaId) q = q.eq("artista_id", artistaId);
     if (eventoId) q = q.eq("evento_id", eventoId);
+    if (fonteId) q = q.eq("source_id", fonteId);
     if (cidade) {
       q = q.eq("cidade", cidade);
       if (estado) q = q.eq("estado", estado);
@@ -200,6 +243,7 @@ export async function loadDashboardData(
     total: r.total,
     emailValidos: r.email_validos,
     telefoneValidos: r.telefone_validos,
+    dataDesconhecida: r.data_desconhecida,
   }));
 
   const doPeriodoAtual = diarios.filter((r) => r.dia >= atual.inicio && r.dia <= atual.fim);
@@ -223,7 +267,17 @@ export async function loadDashboardData(
   const contatoUtilizavelPercentual =
     totalPeriodo > 0 ? (Math.max(emailValidos, telefoneValidos) / totalPeriodo) * 100 : null;
 
-  const tendencia = buildTrend(doPeriodoAtual, artistaId ? "evento" : "artista");
+  // Registros sem submitted_at real (dia veio do fallback synced_at — ver
+  // 0009) contam nos totais acima normalmente, mas ficam de fora da linha de
+  // tendência: senão um upload de CSV com cadastros antigos cria um pico
+  // artificial no dia do upload, destruindo a leitura da evolução real.
+  const semDataPeriodo = doPeriodoAtual
+    .filter((r) => r.dataDesconhecida)
+    .reduce((acc, r) => acc + r.total, 0);
+  const tendencia = buildTrend(
+    doPeriodoAtual.filter((r) => !r.dataDesconhecida),
+    artistaId ? "evento" : "artista",
+  );
 
   const rankingMap = new Map<string, RankingItem>();
   for (const r of doPeriodoAtual) {
@@ -248,6 +302,7 @@ export async function loadDashboardData(
       .range(from, to);
     if (artistaId) q = q.eq("artista_id", artistaId);
     if (eventoId) q = q.eq("evento_id", eventoId);
+    if (fonteId) q = q.eq("source_id", fonteId);
     if (cidade) {
       q = q.eq("cidade", cidade);
       if (estado) q = q.eq("estado", estado);
@@ -276,6 +331,7 @@ export async function loadDashboardData(
       .range(from, to);
     if (artistaId) q = q.eq("artista_id", artistaId);
     if (eventoId) q = q.eq("evento_id", eventoId);
+    if (fonteId) q = q.eq("source_id", fonteId);
     if (cidade) {
       q = q.eq("cidade", cidade);
       if (estado) q = q.eq("estado", estado);
@@ -356,6 +412,8 @@ export async function loadDashboardData(
 
   return {
     artistas: artistas ?? [],
+    fontes,
+    cidades,
     kpis: {
       totalPeriodo,
       deltaPercentual,
@@ -363,6 +421,7 @@ export async function loadDashboardData(
       contatoUtilizavelPercentual,
       fontesComProblema: new Set(alertas.map((a) => a.sourceId)).size,
       fontesTotal: qualidadePorFonte.length,
+      semDataPeriodo,
     },
     tendencia,
     ranking,

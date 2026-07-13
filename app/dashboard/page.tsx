@@ -16,6 +16,7 @@ interface DashboardPageProps {
     periodo?: string;
     artista_id?: string;
     evento_id?: string;
+    fonte_id?: string;
     cidade?: string;
     estado?: string;
   }>;
@@ -32,13 +33,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const periodo: Periodo = isPeriodo(params.periodo) ? params.periodo : "30d";
   const artistaId = params.artista_id || null;
   const eventoId = params.evento_id || null;
+  const fonteId = params.fonte_id || null;
   const cidade = params.cidade || null;
   const estado = params.estado || null;
 
-  const dados = await loadDashboardData(periodo, artistaId, eventoId, cidade, estado);
+  const dados = await loadDashboardData(periodo, artistaId, eventoId, fonteId, cidade, estado);
 
   const eventoLabel = eventoId ? (dados.ranking.find((r) => r.eventoId === eventoId)?.label ?? null) : null;
-  const cidadeLabel = cidade ? (estado ? `${cidade} — ${estado}` : cidade) : null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -53,8 +54,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           periodo={periodo}
           artistaId={artistaId}
           artistas={dados.artistas}
+          fonteId={fonteId}
+          fontes={dados.fontes}
+          cidade={cidade}
+          estado={estado}
+          cidades={dados.cidades}
           eventoLabel={eventoLabel}
-          cidadeLabel={cidadeLabel}
         />
       </div>
 
@@ -84,6 +89,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-medium">Tendência diária</h2>
+        {dados.kpis.semDataPeriodo > 0 && (
+          <p className="text-xs text-zinc-500">
+            {dados.kpis.semDataPeriodo.toLocaleString("pt-BR")} interessados sem data de
+            cadastro (fonte sem coluna de data mapeada) contam nos totais acima, mas não
+            aparecem nesta linha — não há como saber em que dia se cadastraram.
+          </p>
+        )}
         <TrendChart data={dados.tendencia.data} series={dados.tendencia.series} />
       </section>
 
