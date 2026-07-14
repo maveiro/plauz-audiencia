@@ -34,10 +34,15 @@ npm run dev
 ## Estrutura
 
 ```
+middleware.ts   protege toda rota por padrão (auth) — ver ARCHITECTURE.md, seção "Autenticação"
 app/            rotas Next.js (App Router) — pages, Server Actions, API routes
   _components/  UI compartilhada entre rotas — toast, status pill, skeleton, nav (ver CLAUDE.md)
+  login/        tela de login (Google OAuth via Supabase Auth)
+  auth/callback/  troca o code do OAuth por sessão, valida domínio do e-mail
   dashboard/    tela de acompanhamento diário, só leitura (ver ARCHITECTURE.md, seção "Dashboard")
 lib/            lógica de domínio (readers, sync, transforms, geo, validation, google, storage, supabase)
+  auth/         server action de logout
+  supabase/     três clients distintos — server.ts (service role), serverClient.ts (sessão), client.ts (browser); ver CLAUDE.md
   dashboard/    busca + agregação server-side para /dashboard (queries.ts, dateRange.ts)
   fieldMappings/  sugestão de field_mappings pra fonte nova, a partir do histórico de outras fontes
 supabase/migrations/   schema versionado — única forma de alterar o banco
@@ -59,6 +64,12 @@ docs/PLANO.md   roadmap por fase
   decisão que alguém vai questionar depois).
 - Módulos que tocam segredos (`SUPABASE_SERVICE_ROLE_KEY`, chave da service
   account do Google, `ANTHROPIC_API_KEY`) começam com `import "server-only"`.
+- Três clients Supabase, cada um só no seu contexto (não misturar):
+  `lib/supabase/server.ts` (service role, todo dado de negócio),
+  `lib/supabase/serverClient.ts` (ciente de sessão, só fluxo de login
+  server-side) e `lib/supabase/client.ts` (browser, só o botão de login).
+  Se o código precisa ler/escrever `interessados`/`sources`/etc., é sempre
+  `server.ts` — nunca os outros dois.
 - Gráficos do `/dashboard` usam Recharts em Client Components (`"use client"`)
   — a busca de dados fica no Server Component da página, só o componente de
   gráfico em si precisa ser client. Antes de adicionar ou mudar cor de um

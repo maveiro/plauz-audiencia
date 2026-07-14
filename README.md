@@ -17,8 +17,9 @@ nunca alterar a fonte original.
 ## Stack
 
 - [Next.js](https://nextjs.org) — interface e API, hospedado na [Vercel](https://vercel.com)
-- [Supabase](https://supabase.com) — banco de dados (Postgres) e armazenamento de arquivos (Storage)
-- Google Sheets API — leitura das planilhas, via service account
+- [Supabase](https://supabase.com) — banco de dados (Postgres), armazenamento de arquivos (Storage) e autenticação (Supabase Auth)
+- Login — Google OAuth via Supabase Auth, restrito a um domínio de e-mail (`ALLOWED_EMAIL_DOMAIN`); toda rota exige sessão, exceto a de Cron
+- Google Sheets API — leitura das planilhas, via service account (credencial separada da do login)
 - `papaparse` / `xlsx` (SheetJS) — leitura de arquivos CSV/Excel enviados por upload
 - Vercel Cron — sincronização automática periódica (apenas fontes do tipo Google Sheets; ver nota sobre o plano Hobby abaixo)
 - [Recharts](https://recharts.org) — gráficos do dashboard (`/dashboard`)
@@ -96,10 +97,39 @@ já tolera as duas formas (com ou sem aspas envolventes), mas se aparecer esse
 erro depois de configurar credenciais novas na Vercel, é o primeiro lugar a
 checar.
 
-### 7. Rodar localmente
+### 7. Login (Google OAuth via Supabase Auth)
+Toda rota da aplicação exige login — restrito a um domínio de e-mail
+(Google Workspace), configurado em duas partes:
+
+1. **Google Cloud Console** → APIs & Services → **Google Auth Platform**
+   (substituiu o antigo menu único "OAuth consent screen" — hoje é dividido
+   em três abas: Branding, Audience, Clients).
+   - Aba **Audience**: se o projeto do GCP pertencer à organização do seu
+     Workspace, escolha **Internal** (só quem é do domínio consegue logar —
+     o Google recusa o resto antes de chegar na aplicação). Só aparece
+     **External** se o projeto não pertencer à organização; nesse caso a
+     restrição de domínio fica só por conta da checagem em
+     `app/auth/callback/route.ts`.
+   - Aba **Clients** → **+ Create Client** → tipo **Web application**.
+     **Authorized redirect URIs** é a URL do **Supabase**, não a da
+     aplicação: `https://<seu-project-ref>.supabase.co/auth/v1/callback`.
+     Copie o **Client ID** e o **Client Secret** gerados.
+2. **Supabase Dashboard** → Authentication → Providers → **Google** → cole
+   o Client ID/Secret do passo anterior. Depois, Authentication → URL
+   Configuration → adicione `<sua-url>/auth/callback` (e
+   `http://localhost:3000/auth/callback` pra testar local) na lista de
+   Redirect URLs — o Supabase rejeita qualquer `redirectTo` fora dessa lista.
+3. Preencha `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   (mesmos valores de `SUPABASE_URL`/`SUPABASE_ANON_KEY`, só expostos ao
+   bundle do browser) e `ALLOWED_EMAIL_DOMAIN` no `.env.local`.
+
+### 8. Rodar localmente
 ```bash
 npm run dev
 ```
+Acessar `http://localhost:3000` deve redirecionar pra `/login` (salvo se já
+existir uma sessão válida no navegador) — primeiro sinal de que o gate de
+autenticação está funcionando.
 
 ## Documentação
 
@@ -117,6 +147,7 @@ npm run dev
 ├── CLAUDE.md                     # instruções do projeto para o agente de IA
 ├── AGENTS.md                     # referência rápida (comandos, convenções)
 ├── ARCHITECTURE.md               # desenho técnico do sistema
+├── middleware.ts                  # protege toda rota por padrão (auth) — ver ARCHITECTURE.md, seção "Autenticação"
 ├── docs/
 │   └── PLANO.md                  # roadmap de desenvolvimento, por fase
 ├── supabase/
@@ -127,6 +158,9 @@ npm run dev
 │   └── data/municipios-ibge.json  # seed estático (dados públicos do IBGE)
 ├── app/                           # rotas Next.js (interface + API)
 │   ├── _components/               # UI compartilhada entre rotas (toast, status pill, skeleton, nav)
+│   ├── login/                     # tela de login (botão "Entrar com Google")
+│   ├── auth/callback/             # troca o code do OAuth por sessão, valida domínio do e-mail
+│   ├── acesso-negado/             # tela pra quem tenta logar fora do domínio autorizado
 │   ├── artistas/                  # cadastro de artistas e eventos
 │   ├── fontes/                    # cadastro, listagem, mapeamento e exclusão de fontes
 │   ├── revisao/                   # revisão manual de cidade/estado ambíguos (com botão "Resolver com IA")
@@ -146,7 +180,8 @@ npm run dev
     ├── validation/                # validação leve de e-mail/telefone
     ├── google/                    # cliente autenticado do Google Sheets
     ├── storage/                   # upload para o Supabase Storage
-    ├── supabase/                  # cliente server-side (service role)
+    ├── auth/                      # server action de logout
+    ├── supabase/                  # três clients Supabase: server.ts (service role), serverClient.ts (sessão), client.ts (browser)
     ├── fieldMappings/             # sugestão de mapeamento pra fonte nova, a partir de fontes já mapeadas
     └── dashboard/                 # busca + agregação server-side para /dashboard
 ```
@@ -183,6 +218,9 @@ npm run dev
   normalização determinística deixou pendentes, sempre validando a sugestão
   contra a lista de municípios antes de aplicar, e registrando tudo em
   `geo_ia_logs` (aplicado ou não).
+- **Login**: toda a aplicação exige sessão — Google OAuth via Supabase Auth,
+  restrito a um domínio de e-mail (`ALLOWED_EMAIL_DOMAIN`). Única exceção é
+  `/api/cron/sync`, que autentica por `CRON_SECRET`.
 
 Mais detalhes de arquitetura e decisões de design estão em `CLAUDE.md`.
 
@@ -225,14 +263,17 @@ npm run hard-delete-expired -- --dias=30 --confirmar  # apaga de fato
 ## Status do projeto
 
 Ambiente de produção (Vercel + Supabase) configurado e operacional: todas as
-env vars preenchidas (Supabase, Google service account, `CRON_SECRET`),
-migrações aplicadas no banco (`0001` a `0010` — schema inicial, dashboard,
-revisão por IA e os filtros de fonte/cidade do dashboard), e o cron de
-sincronização diária ativo (ver "Automação" acima). `ANTHROPIC_API_KEY` é a
-única variável opcional — sem ela, o resto do app funciona normalmente; o
-botão "Resolver com IA" em `/revisao` continua visível, mas falha ao ser
-clicado (o SDK da Anthropic lança erro de credencial ausente). Ver
-`docs/PLANO.md` para o detalhamento por fase de desenvolvimento.
+env vars preenchidas (Supabase, Google service account, `CRON_SECRET`,
+Google OAuth + `ALLOWED_EMAIL_DOMAIN`), migrações aplicadas no banco (`0001`
+a `0010` — schema inicial, dashboard, revisão por IA e os filtros de
+fonte/cidade do dashboard), o cron de sincronização diária ativo (ver
+"Automação" acima), e login obrigatório restrito a `plauz.com.br` (ver
+"Conceitos-chave" acima e `ARCHITECTURE.md`, seção "Autenticação").
+`ANTHROPIC_API_KEY` é a única variável opcional — sem ela, o resto do app
+funciona normalmente; o botão "Resolver com IA" em `/revisao` continua
+visível, mas falha ao ser clicado (o SDK da Anthropic lança erro de
+credencial ausente). Ver `docs/PLANO.md` para o detalhamento por fase de
+desenvolvimento.
 
 O que continua sendo trabalho manual **recorrente** (não é uma pendência de
 setup, é o fluxo normal de uso): para cada planilha nova, compartilhar com a

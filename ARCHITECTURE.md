@@ -52,7 +52,8 @@ Visão técnica de como o sistema é construído e como os dados fluem. Para o
 | Geo | `lib/geo/` | Normaliza nome de cidade e casa contra `municipios_ref` via similaridade de trigrama (função SQL `match_municipio`); `aiResolveGeografia.ts` é uma segunda camada, sob demanda, que trata com IA os casos que sobraram pendentes (ver seção "Revisão de local assistida por IA") |
 | Google | `lib/google/` | Cliente autenticado (service account, somente leitura) + extração de `sheet_id` da URL |
 | Storage | `lib/storage/` | Upload/replace de arquivo no Supabase Storage, caminho determinístico por `source_id` |
-| Supabase | `lib/supabase/` | Client server-side com a service role key — nunca importado por código client |
+| Supabase | `lib/supabase/` | Três clients distintos: `server.ts` (service role, dado de negócio, ignora RLS), `serverClient.ts` (ciente de cookie de sessão, fluxo de login server-side), `client.ts` (browser, só fala com a API de Auth) — ver CLAUDE.md, seção "Camada adicional: autenticação" |
+| Autenticação | `middleware.ts`, `lib/supabase/middleware.ts`, `lib/auth/` | Protege toda rota por padrão (Google OAuth via Supabase Auth, restrito a `ALLOWED_EMAIL_DOMAIN`); exemptas: `/login`, `/auth/callback`, `/acesso-negado`, `/api/cron/sync` |
 | Tipos | `lib/database.types.ts` | Tipos do schema, mantidos manualmente em sincronia com as migrações (ver nota no topo do arquivo) |
 | Rotas de API | `app/api/` | Superfície HTTP: upload, sync manual, cron |
 | Interface | `app/*/page.tsx` | Server Components que consultam Supabase diretamente (service role, server-side) |
@@ -134,6 +135,45 @@ do evento no momento do sync), `source_id` e `raw_response_id` (1:1, único).
 O cron não é agendado automaticamente por padrão (ver README, seção
 "Automação") — a rota funciona independente de agendamento e pode ser
 chamada por qualquer scheduler externo.
+
+## Autenticação
+
+Toda rota é protegida por padrão. `middleware.ts` (raiz) delega para
+`lib/supabase/middleware.ts`, que roda em runtime Edge a cada requisição:
+
+1. Se `pathname === "/api/cron/sync"`, deixa passar direto — essa rota
+   autentica sozinha via `CRON_SECRET`, sem sessão de browser.
+2. Revalida a sessão com `supabase.auth.getUser()` (nunca `getSession()`,
+   que só decodifica o cookie local sem confirmar contra o Supabase Auth).
+   Sem sessão e fora das rotas exemptas (`/login`, `/auth/callback`,
+   `/acesso-negado`), redireciona para `/login?next=<rota original>`.
+3. Com sessão cujo e-mail não termina em `ALLOWED_EMAIL_DOMAIN`, desloga e
+   redireciona para `/acesso-negado` — defesa em profundidade; o controle
+   principal já aconteceu no passo 4 abaixo.
+
+Fluxo de login: `app/login/GoogleSignInButton.tsx` (Client Component) chama
+`supabase.auth.signInWithOAuth({ provider: "google", ... })` com
+`queryParams: { hd: ALLOWED_EMAIL_DOMAIN }` (só UX — pré-filtra o seletor de
+conta do Google, não é controle de segurança). O Google redireciona para
+`app/auth/callback/route.ts`, que:
+
+4. Troca o `code` por sessão (`exchangeCodeForSession`) e confere se
+   `user.email` termina em `ALLOWED_EMAIL_DOMAIN` — **este é o controle
+   real**. Se não bater, `signOut()` antes de redirecionar para
+   `/acesso-negado`, pra nunca deixar cookie de sessão válido para um e-mail
+   de fora do domínio.
+5. Valida `?next=` contra open redirect (só aceita caminho relativo
+   começando com `/`, nunca `//` nem URL absoluta) antes de redirecionar de
+   volta pra onde o usuário tentou ir.
+
+`lib/auth/actions.ts` (`signOutAction`, Server Action) desloga e redireciona
+para `/login`; `app/layout.tsx` chama `serverClient` + `getUser()` em todo
+request (torna toda página dinâmica, sem prerender estático) pra mostrar
+e-mail logado + botão "Sair" no header.
+
+Nenhuma migração foi necessária: o e-mail do Google já fica em
+`auth.users` (schema separado, gerenciado pelo Supabase Auth), e a checagem
+de domínio é comparação de string, sem consulta a tabela nenhuma.
 
 ## Dashboard
 
@@ -238,14 +278,19 @@ risco de sobrescrever configuração existente.
 
 ## Segurança
 
+- Toda rota exige login (Google OAuth, restrito a `ALLOWED_EMAIL_DOMAIN`) —
+  ver seção "Autenticação" acima. Único jeito de entrar sem sessão de
+  browser é `/api/cron/sync`, que exige `Authorization: Bearer $CRON_SECRET`.
 - `SUPABASE_SERVICE_ROLE_KEY` e a chave privada da service account do Google
   só existem em módulos marcados `import "server-only"` — o build falha se
   algum desses módulos for importado por código client.
 - RLS habilitado em todas as tabelas, sem políticas públicas: só a service
-  role (server-side) lê/escreve. Se a aplicação um dia precisar de acesso
-  direto do client com a chave anon, isso exige políticas explícitas em uma
-  nova migração — não existe hoje.
-- `/api/cron/sync` exige `Authorization: Bearer $CRON_SECRET`.
+  role (server-side, `lib/supabase/server.ts`) lê/escreve dado de negócio. O
+  client de browser (`lib/supabase/client.ts`, anon key exposta via
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`) só fala com a API de Auth do Supabase —
+  sem policy criada, não enxerga tabela nenhuma. Se a aplicação um dia
+  precisar de acesso direto do client a dado de negócio, isso ainda exige
+  políticas explícitas em uma nova migração — não existe hoje.
 - Upload de arquivo valida extensão (`csv`, `xls`, `xlsx`) antes de gravar no
   Storage.
 

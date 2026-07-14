@@ -34,6 +34,8 @@ artista, fonte e cidade. Ver seção "Camada adicional: dashboard" abaixo e
 
 - **Frontend/API**: Next.js (App Router), deploy na Vercel
 - **Banco**: Supabase (Postgres) — schema versionado via Supabase CLI migrations
+- **Autenticação**: Supabase Auth (provider Google), restrita a um domínio de
+  e-mail via `middleware.ts` — ver seção "Camada adicional: autenticação"
 - **Armazenamento de arquivo**: Supabase Storage (para uploads de CSV/XLS)
 - **Integração externa**: Google Sheets API v4, autenticado via **service account**
   (não usar OAuth de usuário — não precisamos escrever, só ler)
@@ -161,6 +163,35 @@ não** — nunca só as aplicadas. Essa camada é deliberadamente separada do
 motor de sync (não roda automaticamente a cada sincronização) para não
 acoplar uma dependência externa e custo variável ao caminho crítico do sync.
 
+### Camada adicional: autenticação
+
+Toda rota é protegida por padrão via `middleware.ts` +
+`lib/supabase/middleware.ts`, exceto `/login`, `/auth/callback`,
+`/acesso-negado` e `/api/cron/sync` (que mantém sua própria autenticação por
+`CRON_SECRET` — chamada direta do Vercel Cron, sem sessão de browser). Login é
+Google OAuth via Supabase Auth, restrito ao domínio em `ALLOWED_EMAIL_DOMAIN`
+(padrão `plauz.com.br`, falha fechado se a env var estiver vazia): a
+checagem de domínio principal acontece em `app/auth/callback/route.ts` logo
+após trocar o code por sessão (desloga e redireciona para `/acesso-negado`
+se o e-mail não bater — nunca deixa cookie de sessão válido para fora do
+domínio); o middleware repete a mesma checagem como defesa em profundidade,
+não como controle principal.
+
+Três clients Supabase distintos, cada um só no seu contexto — não misturar:
+
+- **`lib/supabase/server.ts`** (`createServiceRoleClient`) — service role,
+  ignora RLS, usado por todo o motor de sync e pelas queries de
+  dado/dashboard. Nunca ganha consciência de sessão de usuário.
+- **`lib/supabase/serverClient.ts`** — ciente do cookie de auth, para Server
+  Components/Route Handlers/Server Actions do fluxo de login
+  (`app/layout.tsx`, `app/login/`, `app/auth/callback/`,
+  `lib/auth/actions.ts`). Fala só com a API de Auth, nunca com tabela de
+  negócio.
+- **`lib/supabase/client.ts`** — client de browser, usado só pelo botão
+  "Entrar com Google". A anon key exposta via `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  é segura por design: RLS habilitado sem nenhuma policy (princípio 8 segue
+  valendo), então o client não enxerga tabela nenhuma, só a API de Auth.
+
 ### Componentes de UI compartilhados
 
 `app/_components/` (prefixo `_` exclui a pasta do roteamento do App Router)
@@ -200,7 +231,6 @@ de recriar:
 ## O que este projeto explicitamente NÃO faz (ainda)
 
 - Não escreve de volta nas planilhas do Google.
-- Não faz autenticação multiusuário (uso é pessoal).
 - Não faz verificação de deliverability de e-mail nem validação de telefone
   via API externa — isso é validação "pesada", fica para uma fase de análise
   separada, sob demanda, fora da sincronização automática.
@@ -216,7 +246,10 @@ de recriar:
 ```
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=       # server-side only
-SUPABASE_ANON_KEY=               # se necessário no client
+SUPABASE_ANON_KEY=
+NEXT_PUBLIC_SUPABASE_URL=        # mesmo valor de SUPABASE_URL, exposto ao bundle do browser (login)
+NEXT_PUBLIC_SUPABASE_ANON_KEY=   # mesmo valor de SUPABASE_ANON_KEY, exposto ao bundle do browser (login)
+ALLOWED_EMAIL_DOMAIN=plauz.com.br  # domínio Google Workspace autorizado a logar
 DATABASE_URL=                    # opcional; não usada pela app, só para psql/CLI direto no Postgres
 GOOGLE_SERVICE_ACCOUNT_EMAIL=
 GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=
