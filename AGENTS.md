@@ -35,9 +35,11 @@ npm run dev
 
 ```
 app/            rotas Next.js (App Router) — pages, Server Actions, API routes
+  _components/  UI compartilhada entre rotas — toast, status pill, skeleton, nav (ver CLAUDE.md)
   dashboard/    tela de acompanhamento diário, só leitura (ver ARCHITECTURE.md, seção "Dashboard")
 lib/            lógica de domínio (readers, sync, transforms, geo, validation, google, storage, supabase)
   dashboard/    busca + agregação server-side para /dashboard (queries.ts, dateRange.ts)
+  fieldMappings/  sugestão de field_mappings pra fonte nova, a partir do histórico de outras fontes
 supabase/migrations/   schema versionado — única forma de alterar o banco
 scripts/        scripts standalone (rodados via tsx, fora do Next.js)
 docs/PLANO.md   roadmap por fase
@@ -65,6 +67,15 @@ docs/PLANO.md   roadmap por fase
   inventar cor nova ad-hoc.
 - Novo transform de campo = nova função em `lib/transforms/index.ts`, nunca
   um `if` condicional por fonte espalhado pelo motor de sync.
+- Feedback de ação assíncrona (sincronizar, salvar, excluir, confirmar) usa
+  o toast compartilhado (`useToast()` de `app/_components/ToastProvider.tsx`)
+  — não criar estado local de mensagem solta num componente novo.
+- Toda rota com busca não-trivial no Supabase tem um `loading.tsx` ao lado
+  do `page.tsx`, montado com `app/_components/Skeleton.tsx` — o App Router
+  não dá nenhum feedback de carregamento sozinho, e a maioria das páginas
+  deste projeto é Server Component `force-dynamic`.
+- Status de fonte (`active`/`paused`/`error`) sempre via
+  `app/_components/StatusPill.tsx` — nunca só cor de texto (acessibilidade).
 - Migrações são sempre um novo arquivo em `supabase/migrations/`, nunca uma
   edição de migração já aplicada nem uma alteração manual no dashboard.
 - Segredo multi-linha (ex: `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`) colado no

@@ -126,6 +126,7 @@ npm run dev
 │   ├── hard-delete-expired.ts     # limpeza definitiva de fontes excluídas há muito tempo
 │   └── data/municipios-ibge.json  # seed estático (dados públicos do IBGE)
 ├── app/                           # rotas Next.js (interface + API)
+│   ├── _components/               # UI compartilhada entre rotas (toast, status pill, skeleton, nav)
 │   ├── artistas/                  # cadastro de artistas e eventos
 │   ├── fontes/                    # cadastro, listagem, mapeamento e exclusão de fontes
 │   ├── revisao/                   # revisão manual de cidade/estado ambíguos (com botão "Resolver com IA")
@@ -146,6 +147,7 @@ npm run dev
     ├── google/                    # cliente autenticado do Google Sheets
     ├── storage/                   # upload para o Supabase Storage
     ├── supabase/                  # cliente server-side (service role)
+    ├── fieldMappings/             # sugestão de mapeamento pra fonte nova, a partir de fontes já mapeadas
     └── dashboard/                 # busca + agregação server-side para /dashboard
 ```
 
@@ -160,7 +162,11 @@ npm run dev
 - **Dado bruto (`raw_responses`)**: cada linha da fonte, como veio, sem
   tratamento. Nunca é apagado ou sobrescrito de forma destrutiva.
 - **Mapeamento (`field_mappings`)**: configuração que diz como traduzir cada
-  coluna de cada fonte para o formato padrão.
+  coluna de cada fonte para o formato padrão. Uma fonte nova sem mapeamento
+  salvo vem com uma sugestão pré-preenchida (revisável, nunca aplicada
+  sozinha) baseada em como outras fontes com as mesmas colunas já foram
+  mapeadas — útil quando várias fontes reusam o mesmo template de
+  formulário.
 - **Interessados (`interessados`)**: a tabela final, unificada, com
   validação leve de e-mail/telefone e correção automática de cidade/estado.
 - **Sobreposição de público**: como a mesma pessoa pode aparecer em
@@ -170,7 +176,8 @@ npm run dev
   recuperáveis por um tempo) antes de uma limpeza definitiva.
 - **Dashboard**: tela de acompanhamento diário (`/dashboard`) — volume,
   tendência, ranking de eventos, geografia e qualidade de dado por fonte,
-  com alerta quando uma fonte para de sincronizar. Só leitura.
+  com alerta quando uma fonte para de sincronizar. Filtrável por período,
+  artista, fonte e cidade. Só leitura.
 - **Revisão de local assistida por IA**: no `/revisao`, além da confirmação
   manual, um botão "Resolver com IA" trata com Claude os casos que a
   normalização determinística deixou pendentes, sempre validando a sugestão
@@ -219,13 +226,13 @@ npm run hard-delete-expired -- --dias=30 --confirmar  # apaga de fato
 
 Ambiente de produção (Vercel + Supabase) configurado e operacional: todas as
 env vars preenchidas (Supabase, Google service account, `CRON_SECRET`),
-migrações aplicadas no banco (incluindo as do dashboard e da revisão por IA,
-`0005`/`0006`), e o cron de sincronização diária ativo (ver "Automação"
-acima). `ANTHROPIC_API_KEY` é a única variável opcional — sem ela, o resto do
-app funciona normalmente; o botão "Resolver com IA" em `/revisao` continua
-visível, mas falha ao ser clicado (o SDK da Anthropic lança erro de
-credencial ausente). Ver `docs/PLANO.md` para o detalhamento por fase de
-desenvolvimento.
+migrações aplicadas no banco (`0001` a `0010` — schema inicial, dashboard,
+revisão por IA e os filtros de fonte/cidade do dashboard), e o cron de
+sincronização diária ativo (ver "Automação" acima). `ANTHROPIC_API_KEY` é a
+única variável opcional — sem ela, o resto do app funciona normalmente; o
+botão "Resolver com IA" em `/revisao` continua visível, mas falha ao ser
+clicado (o SDK da Anthropic lança erro de credencial ausente). Ver
+`docs/PLANO.md` para o detalhamento por fase de desenvolvimento.
 
 O que continua sendo trabalho manual **recorrente** (não é uma pendência de
 setup, é o fluxo normal de uso): para cada planilha nova, compartilhar com a

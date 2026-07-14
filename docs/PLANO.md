@@ -116,7 +116,10 @@ preenchidas, e `sync_logs` registrando o resultado.
       (`deleted_at = null`) dentro da janela de retenção
 - [ ] Página para definir `field_mappings` de uma fonte recém-cadastrada,
       mostrando as colunas encontradas para o usuário mapear aos campos
-      canônicos
+      canônicos. Quando a fonte ainda não tem nada salvo, o formulário vem
+      pré-preenchido com o mapeamento mais comum usado em outras fontes com
+      as mesmas colunas (`lib/fieldMappings/suggestMappings.ts`) — sempre
+      revisável, nunca aplicado sem confirmação
 - [ ] Página simples listando `interessados_ativos` com `local_revisao_pendente
       = true`, para revisão manual de cidade/estado ambíguos
 
@@ -157,7 +160,9 @@ Google Sheets sincronizam sozinhas no intervalo configurado.
       externo, rodada sob demanda
 - [ ] Views adicionais de análise: interessados por evento/artista, taxa de
       validade de contato, etc. — implementado como dashboard dedicado
-      (`/dashboard`, views `dash_*` em `0005_dashboard_views.sql`). Ver
+      (`/dashboard`, views `dash_*` em `0005_dashboard_views.sql`, com
+      ajustes em `0007`–`0010` incluindo filtro por fonte e por cidade via
+      dropdown, além do já existente por clique no gráfico). Ver
       ARCHITECTURE.md, seção "Dashboard". Checkbox segue desmarcado por
       convenção deste arquivo (nota de status no topo) até validação contra
       o ambiente real.

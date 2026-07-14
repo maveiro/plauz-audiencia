@@ -26,8 +26,9 @@ pessoa interessada em mais de um).
 
 Além do cadastro/sincronização, existe uma tela de **dashboard**
 (`/dashboard`) para acompanhamento diário — volume, tendência, ranking de
-eventos, geografia e qualidade de dado por fonte. Ver seção "Camada
-adicional: dashboard" abaixo e `ARCHITECTURE.md`.
+eventos, geografia e qualidade de dado por fonte, filtrável por período,
+artista, fonte e cidade. Ver seção "Camada adicional: dashboard" abaixo e
+`ARCHITECTURE.md`.
 
 ## Stack
 
@@ -80,7 +81,14 @@ Ver `docs/PLANO.md` para o detalhamento de fases e
    linha em `sources` e linhas em `field_mappings`. Se você (agente) perceber
    que está prestes a escrever `if (source.id === 'x') { ... }` em lógica de
    sync/normalização, pare — isso é sinal de que falta uma entrada em
-   `field_mappings`, não de que falta um `if`.
+   `field_mappings`, não de que falta um `if`. Pra reduzir o trabalho manual
+   dessa configuração (não pra pular o princípio): uma fonte nova sem
+   mapeamento salvo tem o formulário de `field_mappings` pré-preenchido por
+   `lib/fieldMappings/suggestMappings.ts`, olhando o mapeamento mais comum já
+   usado em outras fontes com as mesmas colunas de origem (ex: mesmo template
+   de formulário reaplicado a cada evento). É só uma sugestão de UI — nunca
+   aplica nada sozinho, nunca sobrescreve mapeamento já salvo, e o usuário
+   ainda confirma explicitamente antes de salvar.
 4. **Duas fontes de linhas, um único motor de sincronização.** O motor de
    sync não sabe se as linhas vieram do Google Sheets ou de um arquivo — ele
    consome uma interface comum (`getRows(): Promise<RawRow[]>`). Existem dois
@@ -122,14 +130,19 @@ Ver `docs/PLANO.md` para o detalhamento de fases e
 
 `/dashboard` é só leitura — nunca escreve em `interessados` nem em nenhuma
 tabela canônica. Consulta views dedicadas (`dash_interessados_diarios`,
-`dash_qualidade_por_fonte`, `dash_geografia` — `0005_dashboard_views.sql`),
-cada uma no grão que permite filtrar por período/artista via PostgREST
-depois, sem precisar de uma view por combinação de filtro. Se for adicionar
-um novo corte de análise (ex: por faixa etária, por canal), prefira estender
-uma view existente ou criar uma nova no mesmo padrão — nunca agregar em SQL
-ad-hoc espalhado pelas páginas. Ver `ARCHITECTURE.md`, seção "Dashboard",
-para o desenho completo, e o skill `dataviz` antes de mexer em cor ou
-adicionar um gráfico novo (a paleta já validada vive em `app/globals.css`).
+`dash_qualidade_por_fonte`, `dash_geografia`, `dash_cidades_disponiveis` —
+`0005_dashboard_views.sql` e os ajustes incrementais em `0007`–`0010`), cada
+uma no grão que permite filtrar por período/artista/fonte/cidade via
+PostgREST depois, sem precisar de uma view por combinação de filtro. O
+filtro de cidade é o mesmo param de URL (`cidade`/`estado`) tanto pelo
+dropdown quanto pelo clique numa barra do gráfico de geografia — os dois
+caminhos escrevem o mesmo estado, nunca duplicar essa lógica. Se for
+adicionar um novo corte de análise (ex: por faixa etária, por canal),
+prefira estender uma view existente ou criar uma nova no mesmo padrão —
+nunca agregar em SQL ad-hoc espalhado pelas páginas. Ver `ARCHITECTURE.md`,
+seção "Dashboard", para o desenho completo, e o skill `dataviz` antes de
+mexer em cor ou adicionar um gráfico novo (a paleta já validada vive em
+`app/globals.css`).
 
 ### Camada adicional: revisão de local assistida por IA
 
@@ -147,6 +160,25 @@ formulário. **Toda sugestão da IA é logada em `geo_ia_logs`, aplicada ou
 não** — nunca só as aplicadas. Essa camada é deliberadamente separada do
 motor de sync (não roda automaticamente a cada sincronização) para não
 acoplar uma dependência externa e custo variável ao caminho crítico do sync.
+
+### Componentes de UI compartilhados
+
+`app/_components/` (prefixo `_` exclui a pasta do roteamento do App Router)
+reúne os poucos primitivos usados em mais de uma tela — reaproveitar em vez
+de recriar:
+
+- **`ToastProvider.tsx`** (`useToast()`) — feedback de ação assíncrona
+  (sucesso/erro). Toda ação disparada por botão (sincronizar, salvar,
+  excluir, confirmar) usa isso, não estado local de mensagem solta na tela.
+- **`StatusPill.tsx`** — status de fonte (`active`/`paused`/`error`) sempre
+  com ícone além de cor, nunca só cor (acessibilidade — daltonismo).
+- **`Skeleton.tsx`** — bloco de carregamento usado pelos `loading.tsx` de
+  cada rota. Toda página com busca não-trivial no Supabase tem um
+  `loading.tsx` — o App Router não dá nenhum feedback de carregamento sem
+  isso, e a maioria das páginas deste projeto é um Server Component
+  `force-dynamic` que só renderiza depois de todas as queries resolverem.
+- **`NavLinks.tsx`** — links do header com estado ativo (via `usePathname`).
+  É Client Component só por causa disso; a lista de rotas vive só aqui.
 
 ## Convenções de nomenclatura
 

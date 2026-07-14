@@ -57,6 +57,8 @@ Visão técnica de como o sistema é construído e como os dados fluem. Para o
 | Rotas de API | `app/api/` | Superfície HTTP: upload, sync manual, cron |
 | Interface | `app/*/page.tsx` | Server Components que consultam Supabase diretamente (service role, server-side) |
 | Mutações | `app/*/actions.ts` | Server Actions (`"use server"`) para criar/editar/excluir — evita rotas de API redundantes para operações internas da UI |
+| UI compartilhada | `app/_components/` | Toast, status pill, skeleton de loading, nav ativa — ver CLAUDE.md, seção "Componentes de UI compartilhados" |
+| Sugestão de mapeamento | `lib/fieldMappings/` | Pré-preenche `field_mappings` de uma fonte nova a partir do histórico de outras fontes com as mesmas colunas — puramente sugestivo, ver seção dedicada abaixo |
 
 ## Schema (Postgres/Supabase)
 
@@ -86,6 +88,27 @@ Aplicado em ordem por `supabase/migrations/`:
   sugestão de normalização geográfica gerada por IA (aplicada ou não),
   disparada manualmente na tela `/revisao` — ver seção "Revisão de local
   assistida por IA".
+- **`0007_fix_dash_diarios_timezone.sql`** — corrige `dash_interessados_diarios`
+  para truncar o dia em América/São_Paulo, não no timezone da sessão do
+  Postgres (UTC) — sem isso, interessados enviados entre 21h e 23h59
+  (horário de SP) contavam no dia seguinte.
+- **`0008_dash_filtros_clicaveis.sql`** — adiciona `cidade`/`estado` a
+  `dash_interessados_diarios`/`dash_qualidade_por_fonte` e `dia` a
+  `dash_geografia`, viabilizando o filtro por clique nos gráficos de "Top
+  cidades" e "Ranking de eventos".
+- **`0009_dash_diarios_data_desconhecida.sql`** — adiciona
+  `data_desconhecida` a `dash_interessados_diarios`, marcando linhas cujo
+  "dia" veio do fallback `synced_at` (fonte sem coluna de data de envio
+  mapeada) — o app exclui essas linhas da série de tendência (evita pico
+  artificial no dia de um upload de CSV com cadastros antigos), mas
+  continua somando normalmente nos KPIs de volume e no ranking.
+- **`0010_dash_fonte_cidade_filtros.sql`** — adiciona `source_id` a
+  `dash_interessados_diarios`/`dash_geografia` (faltava — só
+  `dash_qualidade_por_fonte` tinha) e cria `dash_cidades_disponiveis`
+  (lista distinta de cidade/estado, sem filtro de período/artista/evento),
+  viabilizando os dropdowns de fonte e cidade no `FilterBar` do dashboard —
+  antes cidade só era filtrável clicando numa barra do gráfico, e fonte não
+  era filtrável no dashboard como um todo.
 
 Diagrama de relacionamento (chaves estrangeiras):
 
@@ -118,11 +141,29 @@ chamada por qualquer scheduler externo.
 volume de interessados, tendência, ranking de eventos, geografia, qualidade
 de dado por fonte e sobreposição de público. Server Component que consulta
 as views `dash_*` (ver "Schema" acima) e `publico_sobreposto` via
-`lib/dashboard/queries.ts`; toda a agregação por período/artista acontece em
-JS sobre o resultado já filtrado no Postgres, sem view por combinação de
-filtro. Filtro de período/artista fica na URL (`?periodo=&artista_id=`),
-lido pelo Server Component e escrito por um Client Component pequeno
-(`FilterBar.tsx`). Gráficos usam Recharts (`TrendChart`, `RankingChart`,
+`lib/dashboard/queries.ts`; toda a agregação por período/artista/fonte/cidade
+acontece em JS sobre o resultado já filtrado no Postgres, sem view por
+combinação de filtro. Filtros ficam na URL
+(`?periodo=&artista_id=&fonte_id=&cidade=&estado=`), lidos pelo Server
+Component e escritos por um Client Component pequeno (`FilterBar.tsx`) — três
+`<select>` (artista, fonte, cidade) mais os botões de período. As listas de
+opções de fonte e cidade são buscadas **sem** os filtros ativos aplicados
+(mesmo padrão de `artistas`), senão a opção selecionada podia sumir do
+próprio dropdown ao combinar com outro filtro. `evento_id` não tem dropdown
+próprio — só é setável clicando numa barra do "Ranking de eventos"
+(`RankingChart.tsx`); `cidade`/`estado` têm as duas entradas (dropdown *e*
+clique no "Top cidades", `GeoChart.tsx`) escrevendo o mesmo par de params, no
+mesmo formato (`cidade|estado` como valor do `<option>`/id da barra) — ver
+`CLAUDE.md`, seção "Camada adicional: dashboard".
+
+`loadDashboardData` busca a lista de fontes reaproveitando
+`dash_qualidade_por_fonte` sem filtro (dedupe por `source_id` em JS) em vez
+de ter uma view dedicada tipo `dash_cidades_disponiveis` — funciona, mas é
+uma segunda ida a essa view na mesma request (a filtrada, pra tabela de
+qualidade, é uma busca separada). Ficou assim por pragmatismo; migrar para
+uma view própria de fontes é uma limpeza pendente, não um bug.
+
+Gráficos usam Recharts (`TrendChart`, `RankingChart`,
 `GeoChart`/`HorizontalBarChart`), que por usarem hooks precisam ser Client
 Components — a busca de dados em si continua inteiramente server-side. Cores
 seguem a paleta fixa em `app/globals.css` (`--series-1..8`,
@@ -162,6 +203,22 @@ Deliberadamente **não** roda como parte de `syncSource` — é uma camada
 adicional, sob demanda, para não acoplar uma chamada de API externa (custo,
 latência, ponto de falha) ao caminho crítico do sync. Requer
 `ANTHROPIC_API_KEY` (server-side only — ver `.env.example`).
+
+## Sugestão de mapeamento de campo
+
+`app/fontes/[sourceId]/mapeamento/page.tsx` chama
+`suggestFieldMappings(supabase, allColumns)`
+(`lib/fieldMappings/suggestMappings.ts`) só quando a fonte **ainda não tem**
+nenhum `field_mappings` salvo. A função busca, na tabela `field_mappings`
+inteira (todas as fontes), linhas cujo `source_field` bate com alguma coluna
+detectada nessa fonte nova, e para cada coluna escolhe o `canonical_field` e
+o `transform` mais frequentes historicamente — útil quando várias fontes
+reusam o mesmo template de formulário (mesmos cabeçalhos), como uma "Lista
+Padrão" reaplicada a cada evento. O resultado só pré-preenche o formulário
+(`FieldMappingsForm.tsx`, com um aviso visível de que é sugestão) — nada é
+gravado em `field_mappings` até o usuário clicar em "Salvar mapeamento". Uma
+fonte que já tem mapeamento salvo nunca passa por essa função — não há
+risco de sobrescrever configuração existente.
 
 ## Idempotência e integridade
 
