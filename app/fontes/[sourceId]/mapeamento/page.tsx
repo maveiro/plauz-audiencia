@@ -1,5 +1,6 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getReaderForSource } from "@/lib/readers/getReaderForSource";
+import { suggestFieldMappings } from "@/lib/fieldMappings/suggestMappings";
 import { FieldMappingsForm } from "./FieldMappingsForm";
 import { EditSourceForm } from "./EditSourceForm";
 
@@ -53,6 +54,15 @@ export default async function MapeamentoPage({
     new Set([...detectedColumns, ...(fieldMappings ?? []).map((m) => m.source_field)]),
   );
 
+  // Fonte ainda sem mapeamento salvo: sugere um a partir de como essas
+  // mesmas colunas já foram mapeadas em outras fontes (ex: mesmo template
+  // de formulário reaplicado a cada "Lista Padrão").
+  const hasExistingMappings = (fieldMappings ?? []).length > 0;
+  const suggestedMappings = hasExistingMappings
+    ? []
+    : await suggestFieldMappings(supabase, allColumns);
+  const initialMappings = hasExistingMappings ? (fieldMappings ?? []) : suggestedMappings;
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -76,6 +86,13 @@ export default async function MapeamentoPage({
         </p>
       )}
 
+      {suggestedMappings.length > 0 && (
+        <p className="rounded border border-blue-300 bg-blue-50 p-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300">
+          Mapeamento pré-preenchido com base em outras fontes que usam essas
+          mesmas colunas. Revise antes de salvar.
+        </p>
+      )}
+
       {allColumns.length === 0 ? (
         <p className="text-sm text-zinc-500">
           Nenhuma coluna disponível para mapear ainda.
@@ -84,7 +101,7 @@ export default async function MapeamentoPage({
         <FieldMappingsForm
           sourceId={sourceId}
           detectedColumns={allColumns}
-          initialMappings={fieldMappings ?? []}
+          initialMappings={initialMappings}
         />
       )}
     </div>
