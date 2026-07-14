@@ -236,6 +236,13 @@ Mais detalhes de arquitetura e decisões de design estão em `CLAUDE.md`.
 
 ## Deploy na Vercel
 
+> **Nomes diferentes, mesmo sistema** (evita confusão ao procurar o projeto):
+> a pasta local e o `package.json` chamam isso de `plauz-importar`, o
+> repositório no GitHub é `maveiro/plauz-audiencia`, e o projeto na Vercel
+> (time `marcelos-projects-017e3fe7`) se chama `plauz-import`. Os três
+> apontam pro mesmo deploy — o projeto Vercel `plauz-import` está conectado
+> a esse mesmo repositório GitHub, deploy automático a cada push em `main`.
+
 Configure as mesmas variáveis de `.env.local` (exceto `DATABASE_URL`, que não
 é usada pela aplicação) em Project Settings → Environment Variables, na
 Vercel. **Depois de adicionar ou editar uma env var lá, é preciso disparar um
