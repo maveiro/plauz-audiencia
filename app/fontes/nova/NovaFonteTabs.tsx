@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createGoogleSheetsSource } from "../actions";
 import { NovaFonteArquivoForm } from "./NovaFonteArquivoForm";
+import { NovaFonteFormularioForm } from "./NovaFonteFormularioForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-type Tab = "google_sheets" | "arquivo_upload";
+type Tab = "google_sheets" | "arquivo_upload" | "formulario_nativo";
 
 export function NovaFonteTabs({
   eventos,
@@ -29,6 +30,7 @@ export function NovaFonteTabs({
       <TabsList variant="line">
         <TabsTrigger value="google_sheets">Google Sheets</TabsTrigger>
         <TabsTrigger value="arquivo_upload">Upload de arquivo</TabsTrigger>
+        <TabsTrigger value="formulario_nativo">Formulário nativo</TabsTrigger>
       </TabsList>
 
       <TabsContent value="google_sheets">
@@ -82,6 +84,10 @@ export function NovaFonteTabs({
 
       <TabsContent value="arquivo_upload">
         <NovaFonteArquivoForm eventos={eventos} />
+      </TabsContent>
+
+      <TabsContent value="formulario_nativo">
+        <NovaFonteFormularioForm eventos={eventos} />
       </TabsContent>
     </Tabs>
   );

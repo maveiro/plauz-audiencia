@@ -3,13 +3,16 @@
 Cada fase deve ser concluída e validada isoladamente antes de avançar para a
 próxima. Marque o checklist conforme for concluindo.
 
-> **Nota de status:** o código de todas as fases (0 a 8) está implementado no
-> repositório. Os checkboxes abaixo continuam desmarcados de propósito — cada
-> um representa uma validação contra o ambiente real (Supabase, Google Sheets,
-> Vercel) que só você pode confirmar rodando o sistema. Ver "Status do
-> projeto" no README.md para o que falta de ação sua (variáveis de ambiente,
-> aplicar as migrações 0002–0004, popular `municipios_ref`, criar o bucket,
-> compartilhar planilhas com a service account) antes de marcar cada item.
+> **Nota de status:** o código de todas as fases (0 a 9) está implementado no
+> repositório, além da migration de schema da Fase 10 (a integração com a
+> Meta em si depende de credenciais que só você pode gerar — ver Fase 10).
+> Os checkboxes abaixo continuam desmarcados de propósito — cada um
+> representa uma validação contra o ambiente real (Supabase, Google Sheets,
+> Vercel, e agora também Meta Business Manager) que só você pode confirmar
+> rodando o sistema. Ver "Status do projeto" no README.md para o que falta de
+> ação sua (variáveis de ambiente, aplicar as migrações 0002–0004, popular
+> `municipios_ref`, criar o bucket, compartilhar planilhas com a service
+> account) antes de marcar cada item.
 
 ---
 
@@ -209,3 +212,68 @@ for aparecendo.
 sessão válida; `/api/cron/sync` continua respondendo por `CRON_SECRET`, sem
 redirecionar. Checkbox segue desmarcado por convenção deste arquivo (nota de
 status no topo) até validação contra o ambiente real.
+
+---
+
+## Fase 9 — Formulários nativos de captação
+
+> Motivação: captação hoje depende do Google Forms, que roda no domínio do
+> Google — impossível instalar tracking de conversão (ver Fase 10) e sem
+> controle de marca/experiência. Formulário nativo convive com Google
+> Sheets (não o substitui) — ver CLAUDE.md, seção "Camada adicional:
+> formulários nativos e tracking de campanha", pro desenho completo.
+
+- [ ] Migração `0011_formularios_nativos.sql` aplicada (terceiro
+      `sources.tipo = 'formulario_nativo'`, tabelas `formularios` e
+      `formulario_perguntas`)
+- [ ] `lib/sync/submitFormResponse.ts` — ingestão em tempo real, reusando
+      `lib/sync/buildInteressadoRow.ts` (extraído de `syncSource.ts`)
+- [ ] Rotas públicas `/f/[slug]` (page) e `/api/f/[slug]/submit` (POST),
+      isentas do gate de autenticação (`EXEMPT_PATHS` em
+      `lib/supabase/middleware.ts`) — únicas rotas do produto abertas a
+      qualquer visitante sem sessão
+- [ ] Terceira aba "Formulário nativo" em `/fontes/nova`
+      (`NovaFonteFormularioForm.tsx`), tela de edição em
+      `/fontes/[sourceId]/formulario` (status rascunho/publicado/pausado,
+      perguntas extras, texto de consentimento)
+- [ ] Validação server-side estrita da submissão (chaves conhecidas,
+      obrigatoriedade, opções válidas) + honeypot + tempo mínimo de
+      preenchimento como anti-spam
+
+**Critério de conclusão:** um evento real roda 100% num formulário nativo —
+criado, publicado, preenchido em navegador anônimo (sem sessão) — com dados
+chegando em `interessados` no mesmo formato que uma linha vinda de Sheets
+teria, visíveis no dashboard sem nenhuma mudança nele. Validado contra o
+Supabase de produção nesta sessão (dado de teste criado e removido em
+seguida); checkbox segue desmarcado por convenção deste arquivo até você
+confirmar rodando o sistema você mesmo.
+
+---
+
+## Fase 10 — Pixel de conversão da Meta + Conversions API
+
+> Depende da Fase 9. Sem esta fase, campanhas de Meta Ads apontando pro
+> formulário nativo não têm nenhum evento de conversão voltando ao Ads
+> Manager. Ver CLAUDE.md, seção "Camada adicional: formulários nativos e
+> tracking de campanha".
+
+- [ ] Migração `0012_meta_tracking.sql` aplicada (`formularios.meta_pixel_id`,
+      colunas UTM/`fbclid` em `interessados`, tabela `meta_capi_logs`)
+- [ ] `lib/meta/conversionsApi.ts` — chamada server-side best-effort à
+      Conversions API, disparada via `after()` na rota de submit, nunca
+      bloqueia nem derruba a resposta ao usuário
+- [ ] Pixel client-side (`fbq init` + `PageView` + `Lead` com `eventID`)
+      carregado em `/f/[slug]` quando `meta_pixel_id` está configurado
+- [ ] Campo de Pixel ID na tela de edição do formulário
+      (`/fontes/[sourceId]/formulario`)
+- [ ] **Pré-requisito operacional, fora do código — só você pode fazer:**
+      gerar `META_CONVERSIONS_API_ACCESS_TOKEN` no Events Manager do
+      Business Manager da Meta (Configurações > Conversions API), verificar
+      o domínio do app no Business Manager, e opcionalmente configurar
+      `META_PIXEL_TEST_EVENT_CODE` pra QA sem sujar dado de produção
+
+**Critério de conclusão:** com um Pixel configurado num formulário de teste
+e `META_PIXEL_TEST_EVENT_CODE` preenchido, o evento "Lead" aparece no
+Events Manager tanto via Pixel quanto via Conversions API, com o mesmo
+`event_id`, deduplicados (um evento no relatório, não dois) — validação que
+só você pode fazer, por depender de acesso ao Business Manager da Meta.

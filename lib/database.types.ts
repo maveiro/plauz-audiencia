@@ -82,7 +82,7 @@ export interface Database {
           id: string;
           evento_id: string;
           name: string;
-          tipo: "google_sheets" | "arquivo_upload";
+          tipo: "google_sheets" | "arquivo_upload" | "formulario_nativo";
           sheet_id: string | null;
           sheet_url: string | null;
           tab_name: string | null;
@@ -98,7 +98,7 @@ export interface Database {
           id?: string;
           evento_id: string;
           name: string;
-          tipo?: "google_sheets" | "arquivo_upload";
+          tipo?: "google_sheets" | "arquivo_upload" | "formulario_nativo";
           sheet_id?: string | null;
           sheet_url?: string | null;
           tab_name?: string | null;
@@ -114,7 +114,7 @@ export interface Database {
           id?: string;
           evento_id?: string;
           name?: string;
-          tipo?: "google_sheets" | "arquivo_upload";
+          tipo?: "google_sheets" | "arquivo_upload" | "formulario_nativo";
           sheet_id?: string | null;
           sheet_url?: string | null;
           tab_name?: string | null;
@@ -132,6 +132,109 @@ export interface Database {
             columns: ["evento_id"];
             isOneToOne: false;
             referencedRelation: "eventos";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      formularios: {
+        Row: {
+          id: string;
+          source_id: string;
+          slug: string;
+          titulo: string;
+          descricao: string | null;
+          status: "rascunho" | "publicado" | "pausado";
+          texto_consentimento: string;
+          texto_confirmacao: string | null;
+          cor_destaque: string | null;
+          logo_url: string | null;
+          meta_pixel_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          source_id: string;
+          slug: string;
+          titulo: string;
+          descricao?: string | null;
+          status?: "rascunho" | "publicado" | "pausado";
+          texto_consentimento: string;
+          texto_confirmacao?: string | null;
+          cor_destaque?: string | null;
+          logo_url?: string | null;
+          meta_pixel_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          source_id?: string;
+          slug?: string;
+          titulo?: string;
+          descricao?: string | null;
+          status?: "rascunho" | "publicado" | "pausado";
+          texto_consentimento?: string;
+          texto_confirmacao?: string | null;
+          cor_destaque?: string | null;
+          logo_url?: string | null;
+          meta_pixel_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "formularios_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: true;
+            referencedRelation: "sources";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      formulario_perguntas: {
+        Row: {
+          id: string;
+          formulario_id: string;
+          ordem: number;
+          tipo: "texto_curto" | "texto_longo" | "multipla_escolha" | "caixa_selecao";
+          rotulo: string;
+          obrigatorio: boolean;
+          opcoes: Json | null;
+          chave: string;
+          ativo: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          formulario_id: string;
+          ordem: number;
+          tipo: "texto_curto" | "texto_longo" | "multipla_escolha" | "caixa_selecao";
+          rotulo: string;
+          obrigatorio?: boolean;
+          opcoes?: Json | null;
+          chave: string;
+          ativo?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          formulario_id?: string;
+          ordem?: number;
+          tipo?: "texto_curto" | "texto_longo" | "multipla_escolha" | "caixa_selecao";
+          rotulo?: string;
+          obrigatorio?: boolean;
+          opcoes?: Json | null;
+          chave?: string;
+          ativo?: boolean;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "formulario_perguntas_formulario_id_fkey";
+            columns: ["formulario_id"];
+            isOneToOne: false;
+            referencedRelation: "formularios";
             referencedColumns: ["id"];
           },
         ];
@@ -260,6 +363,11 @@ export interface Database {
           submitted_at: string | null;
           extra: Json;
           synced_at: string;
+          utm_source: string | null;
+          utm_medium: string | null;
+          utm_campaign: string | null;
+          utm_content: string | null;
+          fbclid: string | null;
         };
         Insert: {
           id?: string;
@@ -281,6 +389,11 @@ export interface Database {
           submitted_at?: string | null;
           extra?: Json;
           synced_at?: string;
+          utm_source?: string | null;
+          utm_medium?: string | null;
+          utm_campaign?: string | null;
+          utm_content?: string | null;
+          fbclid?: string | null;
         };
         Update: {
           id?: string;
@@ -302,6 +415,11 @@ export interface Database {
           submitted_at?: string | null;
           extra?: Json;
           synced_at?: string;
+          utm_source?: string | null;
+          utm_medium?: string | null;
+          utm_campaign?: string | null;
+          utm_content?: string | null;
+          fbclid?: string | null;
         };
         Relationships: [
           {
@@ -428,6 +546,44 @@ export interface Database {
           },
         ];
       };
+      meta_capi_logs: {
+        Row: {
+          id: string;
+          interessado_id: string;
+          event_id: string;
+          enviado: boolean;
+          resposta_meta: Json | null;
+          erro: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          interessado_id: string;
+          event_id: string;
+          enviado?: boolean;
+          resposta_meta?: Json | null;
+          erro?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          interessado_id?: string;
+          event_id?: string;
+          enviado?: boolean;
+          resposta_meta?: Json | null;
+          erro?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "meta_capi_logs_interessado_id_fkey";
+            columns: ["interessado_id"];
+            isOneToOne: false;
+            referencedRelation: "interessados";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       // Views "passthrough" (select * from ... where deleted_at is null),
@@ -478,7 +634,7 @@ export interface Database {
         Row: {
           source_id: string;
           source_name: string;
-          tipo: "google_sheets" | "arquivo_upload";
+          tipo: "google_sheets" | "arquivo_upload" | "formulario_nativo";
           status: "active" | "paused" | "error";
           last_synced_at: string | null;
           evento_id: string;

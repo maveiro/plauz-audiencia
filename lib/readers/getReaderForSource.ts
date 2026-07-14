@@ -8,8 +8,13 @@ import type { SourceReader } from "./types";
 type SourceRow = Database["public"]["Tables"]["sources"]["Row"];
 
 /**
- * Único ponto do código que sabe que existem dois tipos de fonte. O motor
- * de sincronização (lib/sync) consome apenas a interface SourceReader.
+ * Único ponto do código que sabe quais tipos de fonte existem — mas só os
+ * dois tipos "pull" (lidos em lote sob demanda). `formulario_nativo` é uma
+ * fonte "push": respostas chegam em tempo real via
+ * `lib/sync/submitFormResponse.ts`, nunca via reader/getRows(). Chamar
+ * syncSource()/getReaderForSource() para essa fonte é sempre um erro de
+ * quem chamou (botão errado, chamada manual de API) — falha explícita aqui
+ * em vez de cair no ramo de arquivo_upload por engano.
  */
 export function getReaderForSource(
   source: SourceRow,
@@ -20,6 +25,12 @@ export function getReaderForSource(
       throw new Error(`Fonte ${source.id} é google_sheets mas não tem sheet_id.`);
     }
     return new GoogleSheetsReader(source.sheet_id, source.tab_name);
+  }
+
+  if (source.tipo === "formulario_nativo") {
+    throw new Error(
+      `Fonte ${source.id} é um formulário nativo — não sincroniza via reader, respostas entram em tempo real (ver lib/sync/submitFormResponse.ts).`,
+    );
   }
 
   if (!source.arquivo_path) {

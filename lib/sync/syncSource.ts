@@ -2,10 +2,8 @@ import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getReaderForSource } from "@/lib/readers/getReaderForSource";
 import { createGeografiaResolver } from "@/lib/geo/resolveGeografia";
-import { isValidEmail, isValidTelefone } from "@/lib/validation";
 import { computeRowHash } from "./rowHash";
-import { mapRowToCanonical, parseSubmittedAt } from "./mapRowToCanonical";
-import type { Database } from "@/lib/database.types";
+import { buildInteressadoRow } from "./buildInteressadoRow";
 import type { RawRow } from "@/lib/readers/types";
 
 type SupabaseServiceClient = ReturnType<typeof createServiceRoleClient>;
@@ -222,53 +220,4 @@ function dedupeNewRows(
     newRows.push(entry);
   }
   return newRows;
-}
-
-type FieldMappingRow = Database["public"]["Tables"]["field_mappings"]["Row"];
-type InteressadoInsert = Database["public"]["Tables"]["interessados"]["Insert"];
-
-async function buildInteressadoRow(args: {
-  row: RawRow;
-  rawResponseId: string;
-  eventoId: string;
-  artistaId: string;
-  sourceId: string;
-  fieldMappings: FieldMappingRow[];
-  resolveGeografia: ReturnType<typeof createGeografiaResolver>;
-}): Promise<InteressadoInsert> {
-  const canonical = mapRowToCanonical(args.row, args.fieldMappings);
-
-  const emailValido = canonical.email ? isValidEmail(canonical.email) : null;
-  const telefoneValido = canonical.telefone
-    ? isValidTelefone(canonical.telefone)
-    : null;
-
-  const geo = canonical.cidade
-    ? await args.resolveGeografia(canonical.cidade, canonical.estado)
-    : {
-        cidadeNormalizada: null,
-        estadoNormalizado: null,
-        confianca: null,
-        revisaoPendente: true,
-      };
-
-  return {
-    evento_id: args.eventoId,
-    artista_id: args.artistaId,
-    source_id: args.sourceId,
-    raw_response_id: args.rawResponseId,
-    nome_completo: canonical.nome_completo || null,
-    telefone: canonical.telefone || null,
-    telefone_valido: telefoneValido,
-    email: canonical.email || null,
-    email_valido: emailValido,
-    cidade_informada: canonical.cidade || null,
-    estado_informada: canonical.estado || null,
-    cidade_normalizada: geo.cidadeNormalizada,
-    estado_normalizado: geo.estadoNormalizado,
-    local_confianca: geo.confianca,
-    local_revisao_pendente: geo.revisaoPendente,
-    submitted_at: parseSubmittedAt(canonical.submitted_at),
-    extra: canonical.extra,
-  };
 }

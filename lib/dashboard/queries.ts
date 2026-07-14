@@ -61,7 +61,7 @@ export interface GeografiaItem {
 export interface FonteQualidade {
   sourceId: string;
   sourceName: string;
-  tipo: "google_sheets" | "arquivo_upload";
+  tipo: "google_sheets" | "arquivo_upload" | "formulario_nativo";
   status: "active" | "paused" | "error";
   lastSyncedAt: string | null;
   eventoNome: string;

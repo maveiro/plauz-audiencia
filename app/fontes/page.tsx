@@ -10,6 +10,12 @@ import { Badge } from "@/components/ui/badge";
 
 export const dynamic = "force-dynamic";
 
+const TIPO_LABELS = {
+  google_sheets: "Google Sheets",
+  arquivo_upload: "Arquivo",
+  formulario_nativo: "Formulário",
+} as const;
+
 export default async function FontesPage() {
   const supabase = createServiceRoleClient();
 
@@ -20,6 +26,21 @@ export default async function FontesPage() {
 
   if (error) {
     throw new Error(`Falha ao carregar fontes: ${error.message}`);
+  }
+
+  // Consulta separada em vez de embed: `formularios` referencia `sources`
+  // (tabela), não `sources_ativas` (view) — o PostgREST não garante
+  // resolver esse embed reverso através da view.
+  const formularioSourceIds = (sources ?? [])
+    .filter((s) => s.tipo === "formulario_nativo")
+    .map((s) => s.id);
+  const slugPorSourceId = new Map<string, string>();
+  if (formularioSourceIds.length > 0) {
+    const { data: formulariosData } = await supabase
+      .from("formularios")
+      .select("source_id, slug")
+      .in("source_id", formularioSourceIds);
+    for (const f of formulariosData ?? []) slugPorSourceId.set(f.source_id, f.slug);
   }
 
   return (
@@ -53,30 +74,42 @@ export default async function FontesPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{source.name}</span>
-                  <Badge variant="secondary">
-                    {source.tipo === "google_sheets" ? "Google Sheets" : "Arquivo"}
-                  </Badge>
-                  <StatusPill status={source.status} />
+                  <Badge variant="secondary">{TIPO_LABELS[source.tipo]}</Badge>
+                  {source.tipo !== "formulario_nativo" && <StatusPill status={source.status} />}
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {source.eventos?.artistas?.nome} — {source.eventos?.nome}
                 </p>
-                <p className="text-xs text-zinc-400">
-                  Última sincronização:{" "}
-                  {source.last_synced_at
-                    ? new Date(source.last_synced_at).toLocaleString("pt-BR")
-                    : "nunca"}
-                </p>
+                {source.tipo === "formulario_nativo" ? (
+                  <p className="text-xs text-zinc-400">
+                    /f/{slugPorSourceId.get(source.id) ?? "—"}
+                  </p>
+                ) : (
+                  <p className="text-xs text-zinc-400">
+                    Última sincronização:{" "}
+                    {source.last_synced_at
+                      ? new Date(source.last_synced_at).toLocaleString("pt-BR")
+                      : "nunca"}
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-wrap items-start gap-3">
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={`/fontes/${source.id}/mapeamento`}>Mapeamento</Link>
-                </Button>
-                {source.tipo === "google_sheets" ? (
-                  <SyncButton sourceId={source.id} />
+                {source.tipo === "formulario_nativo" ? (
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/fontes/${source.id}/formulario`}>Editar formulário</Link>
+                  </Button>
                 ) : (
-                  <ReenviarArquivoForm sourceId={source.id} />
+                  <>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/fontes/${source.id}/mapeamento`}>Mapeamento</Link>
+                    </Button>
+                    {source.tipo === "google_sheets" ? (
+                      <SyncButton sourceId={source.id} />
+                    ) : (
+                      <ReenviarArquivoForm sourceId={source.id} />
+                    )}
+                  </>
                 )}
                 <DeleteSourceButton sourceId={source.id} sourceName={source.name} />
               </div>

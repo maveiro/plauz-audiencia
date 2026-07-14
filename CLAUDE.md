@@ -11,12 +11,17 @@ dados, camadas, schema, rotas de API e deploy).
 
 ## O que este projeto faz
 
-Unifica respostas de múltiplos formulários (Google Sheets, e também upload
-manual de CSV/XLS) em um único banco de dados Supabase (Postgres). O usuário
-cadastra o link de uma planilha, ou envia um arquivo, pela interface web
-(Next.js na Vercel), e o sistema sincroniza periodicamente (no caso de Google
-Sheets) ou substitui o dado no novo upload (no caso de arquivo), mantendo tudo
-atualizado — sem nunca escrever de volta no Google Sheets.
+Unifica respostas de múltiplos formulários (Google Sheets, upload manual de
+CSV/XLS, e formulários nativos hospedados pelo próprio produto em `/f/{slug}`)
+em um único banco de dados Supabase (Postgres). O usuário cadastra o link de
+uma planilha, envia um arquivo, ou cria um formulário nativo, pela interface
+web (Next.js na Vercel). Google Sheets sincroniza periodicamente; upload
+substitui o dado no novo envio; formulário nativo recebe respostas em tempo
+real — mantendo tudo atualizado, sem nunca escrever de volta no Google
+Sheets. Formulário nativo também permite instalar um Pixel de conversão da
+Meta (client-side + Conversions API server-side) para campanhas de tráfego
+pago — ver seção "Camada adicional: formulários nativos e tracking de
+campanha".
 
 Domínio: captação de interessados em compra de ingresso para eventos. Cada
 evento pertence a um **artista**. Cada evento tem uma ou mais **fontes**
@@ -53,12 +58,20 @@ artista, fonte e cidade. Ver seção "Camada adicional: dashboard" abaixo e
 ## Arquitetura de dados (não mudar sem revisão)
 
 ```
-Google Sheets (fonte)  ─┐
-                          ├─→ raw_responses (dado bruto, JSONB, imutável)
-Upload CSV/XLS (fonte)  ─┘        → field_mappings (config: como traduzir cada fonte)
-                                   → interessados (tabela canônica, unificada)
-                                        → normalização geográfica (automática, pós-sync)
+Google Sheets (fonte, pull)      ─┐
+Upload CSV/XLS (fonte, pull)      ├─→ raw_responses (dado bruto, JSONB, imutável)
+Formulário nativo (fonte, push)  ─┘        → field_mappings (config: como traduzir cada fonte)
+                                            → interessados (tabela canônica, unificada)
+                                                 → normalização geográfica (automática, pós-sync)
 ```
+
+Google Sheets e Upload são fontes "pull": o motor de sync busca as linhas sob
+demanda (`SourceReader.getRows()`). Formulário nativo é "push": cada resposta
+chega em tempo real via `lib/sync/submitFormResponse.ts`, que reusa a mesma
+tradução/validação/normalização (`lib/sync/buildInteressadoRow.ts`) só que
+para uma linha por vez, em vez do loop em lote de `syncSource.ts`. Ver
+princípio 4 e "Camada adicional: formulários nativos e tracking de
+campanha".
 
 Ver `docs/PLANO.md` para o detalhamento de fases e
 `supabase/migrations/0001_init.sql` para o schema completo e comentado.
@@ -90,13 +103,24 @@ Ver `docs/PLANO.md` para o detalhamento de fases e
    usado em outras fontes com as mesmas colunas de origem (ex: mesmo template
    de formulário reaplicado a cada evento). É só uma sugestão de UI — nunca
    aplica nada sozinho, nunca sobrescreve mapeamento já salvo, e o usuário
-   ainda confirma explicitamente antes de salvar.
-4. **Duas fontes de linhas, um único motor de sincronização.** O motor de
-   sync não sabe se as linhas vieram do Google Sheets ou de um arquivo — ele
-   consome uma interface comum (`getRows(): Promise<RawRow[]>`). Existem dois
-   "leitores" (`GoogleSheetsReader`, `FileUploadReader`) que implementam essa
-   interface. Nunca duplicar a lógica de hash/upsert/normalização por tipo de
-   fonte.
+   ainda confirma explicitamente antes de salvar. Formulário nativo é a
+   exceção deliberada: como é a própria Plauz quem define o nome de cada
+   campo (não uma planilha externa imprevisível), o `field_mappings` padrão
+   é gerado automaticamente na criação (`lib/formularios/camposPadrao.ts`),
+   sem pedir confirmação — não há ambiguidade a resolver.
+4. **Três fontes de linhas, uma única lógica de tradução/validação/geo.**
+   Google Sheets e arquivo upload são fontes "pull": o motor de sync
+   (`lib/sync/syncSource.ts`) não sabe qual das duas é — consome uma
+   interface comum (`getRows(): Promise<RawRow[]>`), implementada por dois
+   "leitores" (`GoogleSheetsReader`, `FileUploadReader`,
+   `lib/readers/getReaderForSource.ts`). Formulário nativo é fonte "push"
+   (resposta chega em tempo real, uma linha por vez) — não implementa
+   `SourceReader` (chamar `getReaderForSource` para essa fonte lança erro de
+   propósito), e sim entra por `lib/sync/submitFormResponse.ts`. Os dois
+   caminhos convergem na mesma função de tradução (`mapRowToCanonical` +
+   validação leve + normalização geográfica, extraída em
+   `lib/sync/buildInteressadoRow.ts`) — nunca duplicar essa lógica por tipo
+   de fonte, só o "como as linhas chegam" (lote vs. tempo real) é diferente.
 5. **Validação leve não descarta dado.** E-mail e telefone inválidos são
    marcados (`email_valido`, `telefone_valido` = false), o registro entra
    normalmente. Nunca rejeitar/pular uma linha por validação.
@@ -192,6 +216,62 @@ Três clients Supabase distintos, cada um só no seu contexto — não misturar:
   é segura por design: RLS habilitado sem nenhuma policy (princípio 8 segue
   valendo), então o client não enxerga tabela nenhuma, só a API de Auth.
 
+### Camada adicional: formulários nativos e tracking de campanha
+
+Formulário nativo é um terceiro `sources.tipo` (`formulario_nativo`),
+configurado em `formularios` + `formulario_perguntas`
+(`supabase/migrations/0011_formularios_nativos.sql`), hospedado em
+`/f/{slug}` (página pública) com submissão via `POST /api/f/{slug}/submit`.
+Essas duas rotas são a **primeira superfície pública** do produto — isentas
+do gate de autenticação em `lib/supabase/middleware.ts`
+(`EXEMPT_PATHS`) porque recebem submissão de qualquer visitante da
+internet, sem sessão. Tudo mais continua atrás de login.
+
+- **Ciclo de vida**: `formularios.status` é `rascunho` (só visível a
+  usuário autenticado, via `/f/{slug}` mesmo — sem rota de preview
+  separada), `publicado` (aberto ao público) ou `pausado` (página
+  "captação encerrada", nunca 404 — evita quebrar link de campanha
+  antiga). Fonte soft-deletada (`sources.deleted_at`) sempre vira 404,
+  em qualquer status.
+- **Campos padrão fixos**: nome, e-mail, telefone, cidade/estado sempre
+  existem no formulário público, não são configuráveis — só perguntas
+  extras (`formulario_perguntas`, tipos `texto_curto`/`texto_longo`/
+  `multipla_escolha`/`caixa_selecao`) são. Builder deliberadamente enxuto,
+  não uma réplica do Google Forms.
+- **Perguntas pós-publicação**: `tipo`/`opcoes`/`chave` de uma pergunta
+  existente nunca mudam depois de criada — só `rotulo`/`obrigatorio`/`ativo`
+  (desativar em vez de apagar, preserva a leitura de respostas antigas em
+  `interessados.extra`, chaveadas por `chave`).
+  `lib/formularios/camposPadrao.ts` também é o dicionário de textos padrão
+  (consentimento LGPD, confirmação de envio).
+- **Validação server-side estrita** (`lib/formularios/validarResposta.ts`):
+  a rota de submit nunca confia no client — só aceita chaves conhecidas do
+  formulário publicado, impõe obrigatoriedade, valida opções de múltipla
+  escolha/caixa de seleção contra o cadastrado, limita tamanho de texto.
+- **Anti-spam sem infra nova**: honeypot (campo invisível) + tempo mínimo
+  entre carregar a página e enviar — rejeição silenciosa (resposta de
+  sucesso falsa pro bot, nunca grava nada). CAPTCHA fica para quando/se
+  houver spam real observado.
+- **Meta Pixel + Conversions API** (`lib/meta/conversionsApi.ts`,
+  `supabase/migrations/0012_meta_tracking.sql`): opcional por formulário
+  (`formularios.meta_pixel_id`, não é segredo — todo Pixel já é exposto no
+  HTML de qualquer site). No sucesso do submit, o client dispara
+  `fbq('track','Lead', ..., {eventID})` **e** a rota de submit dispara
+  (via `after()`, sem bloquear a resposta ao usuário) uma chamada
+  server-side à Conversions API com o **mesmo** `event_id` — é essa
+  correlação que permite ao Meta deduplicar o mesmo evento reportado duas
+  vezes. Token de acesso é `META_CONVERSIONS_API_ACCESS_TOKEN` (env var,
+  server-only, uma única conta de anúncios centralizada da Plauz — nunca
+  no banco). **Toda chamada é logada em `meta_capi_logs`, sucesso ou
+  erro** (mesmo espírito de `geo_ia_logs`) — falha na Meta nunca derruba a
+  submissão do lead, que já foi salva antes dessa chamada.
+- **UTM/`fbclid`**: capturados da query string da página pública no
+  carregamento, entram no `row_hash` (reenvio da mesma origem é dedup
+  legítimo) e viram colunas dedicadas em `interessados`
+  (`utm_source`/`utm_medium`/`utm_campaign`/`utm_content`/`fbclid`) — não
+  ficam em `extra`, são dimensão de análise de primeira classe (mesma
+  lógica de "estender view, nunca SQL ad-hoc" do dashboard).
+
 ### Componentes de UI compartilhados
 
 `app/_components/` (prefixo `_` exclui a pasta do roteamento do App Router)
@@ -256,6 +336,8 @@ GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=
 SUPABASE_STORAGE_BUCKET=uploads-fontes  # bucket dos uploads de CSV/XLS
 CRON_SECRET=                     # para validar chamadas do Vercel Cron
 ANTHROPIC_API_KEY=               # server-side only; botão "Resolver com IA" em /revisao
+META_CONVERSIONS_API_ACCESS_TOKEN=  # server-side only; envio do evento "Lead" da Conversions API (opcional, por formulário)
+META_PIXEL_TEST_EVENT_CODE=      # opcional; código de teste do Events Manager, só para QA
 ```
 
 O arquivo local é `.env.local` (nunca commitado — coberto por `.env*` no

@@ -16,7 +16,7 @@ export function EditSourceForm({
   tabName,
 }: {
   sourceId: string;
-  tipo: "google_sheets" | "arquivo_upload";
+  tipo: "google_sheets" | "arquivo_upload" | "formulario_nativo";
   name: string;
   sheetUrl: string | null;
   tabName: string | null;

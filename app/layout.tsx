@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { NavLinks } from "./_components/NavLinks";
 import { ToastProvider } from "./_components/ToastProvider";
 import { createClient } from "@/lib/supabase/serverClient";
@@ -28,6 +29,28 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // /f/** é a página pública do formulário nativo (tráfego de anúncio,
+  // sem sessão) — usa um shell enxuto, sem o chrome autenticado (header,
+  // nav interna, ToastProvider por cima do que a própria página pública já
+  // não usa). O pathname vem de um header setado pelo middleware, único
+  // jeito de ler a URL da requisição num Server Component root layout sem
+  // duplicar o app inteiro num route group de root layout separado.
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const isFormularioPublico = pathname === "/f" || pathname.startsWith("/f/");
+
+  if (isFormularioPublico) {
+    return (
+      <html
+        lang="pt-BR"
+        className={cn("h-full", "antialiased", geistMono.variable, "font-sans", inter.variable)}
+      >
+        <body className="min-h-full bg-zinc-50 text-zinc-900 dark:bg-black dark:text-zinc-50">
+          <ToastProvider>{children}</ToastProvider>
+        </body>
+      </html>
+    );
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

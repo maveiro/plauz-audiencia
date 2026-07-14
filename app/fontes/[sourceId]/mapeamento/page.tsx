@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getReaderForSource } from "@/lib/readers/getReaderForSource";
 import { suggestFieldMappings } from "@/lib/fieldMappings/suggestMappings";
@@ -23,6 +24,14 @@ export default async function MapeamentoPage({
 
   if (sourceError || !source) {
     throw new Error("Fonte não encontrada.");
+  }
+
+  // Formulário nativo tem o mapeamento gerado automaticamente na criação
+  // (lib/formularios/camposPadrao.ts) — não faz sentido reexibir esta tela
+  // de mapeamento manual, que assume um reader pull-based (ver
+  // getReaderForSource.ts, que lança erro pra este tipo de fonte).
+  if (source.tipo === "formulario_nativo") {
+    redirect(`/fontes/${sourceId}/formulario`);
   }
 
   const { data: fieldMappings, error: mappingsError } = await supabase

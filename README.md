@@ -275,19 +275,31 @@ npm run hard-delete-expired -- --dias=30 --confirmar  # apaga de fato
 Ambiente de produção (Vercel + Supabase) configurado e operacional: todas as
 env vars preenchidas (Supabase, Google service account, `CRON_SECRET`,
 Google OAuth + `ALLOWED_EMAIL_DOMAIN`), migrações aplicadas no banco (`0001`
-a `0010` — schema inicial, dashboard, revisão por IA e os filtros de
-fonte/cidade do dashboard), o cron de sincronização diária ativo (ver
-"Automação" acima), e login obrigatório restrito a `plauz.com.br` (ver
-"Conceitos-chave" acima e `ARCHITECTURE.md`, seção "Autenticação").
-`ANTHROPIC_API_KEY` é a única variável opcional — sem ela, o resto do app
-funciona normalmente; o botão "Resolver com IA" em `/revisao` continua
-visível, mas falha ao ser clicado (o SDK da Anthropic lança erro de
-credencial ausente). Ver `docs/PLANO.md` para o detalhamento por fase de
-desenvolvimento.
+a `0012` — schema inicial, dashboard, revisão por IA, filtros de
+fonte/cidade do dashboard, formulários nativos e tracking de campanha Meta),
+o cron de sincronização diária ativo (ver "Automação" acima), e login
+obrigatório restrito a `plauz.com.br` (ver "Conceitos-chave" acima e
+`ARCHITECTURE.md`, seção "Autenticação"). `ANTHROPIC_API_KEY` e
+`META_CONVERSIONS_API_ACCESS_TOKEN` são variáveis opcionais — sem a
+primeira, o botão "Resolver com IA" em `/revisao` falha ao ser clicado; sem
+a segunda, formulários nativos continuam recebendo respostas normalmente,
+só não disparam o evento "Lead" pra Conversions API da Meta mesmo que um
+Pixel esteja configurado (fica registrado como erro em `meta_capi_logs`,
+nunca bloqueia a submissão). Ver `docs/PLANO.md` para o detalhamento por
+fase de desenvolvimento.
 
 O que continua sendo trabalho manual **recorrente** (não é uma pendência de
 setup, é o fluxo normal de uso): para cada planilha nova, compartilhar com a
 service account e, na interface (`/fontes/[id]/mapeamento`), configurar o
 `field_mappings` da fonte — sem isso o cron roda mas retorna erro
 ("não tem field_mappings configurados") para aquela fonte especificamente,
-sem afetar as demais.
+sem afetar as demais. Formulário nativo não tem esse passo manual — o
+mapeamento é gerado automaticamente na criação.
+
+Para instalar o Pixel de conversão da Meta num formulário: gere um token de
+sistema no Events Manager do Business Manager da Meta (Configurações >
+Conversions API > Gerar token de acesso), preencha
+`META_CONVERSIONS_API_ACCESS_TOKEN` (Vercel + redeploy), e cole o ID do
+Pixel na tela de edição do formulário (`/fontes/[id]/formulario`).
+Opcionalmente, `META_PIXEL_TEST_EVENT_CODE` (aba "Testar eventos" do Events
+Manager) evita misturar teste com dado de produção.

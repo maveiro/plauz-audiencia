@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { extractSheetId } from "@/lib/google/extractSheetId";
+import { criarFormularioNativo, type CriarFormularioInput } from "@/lib/formularios/criarFormulario";
 
 export async function createGoogleSheetsSource(formData: FormData) {
   const eventoId = String(formData.get("evento_id") ?? "");
@@ -39,6 +40,15 @@ export async function createGoogleSheetsSource(formData: FormData) {
   if (error) throw new Error(error.message);
 
   redirect(`/fontes/${data.id}/mapeamento`);
+}
+
+// Não usa redirect() aqui de propósito: esta action é chamada
+// imperativamente por um Client Component (não via <form action>), e
+// redirect() lançado nesse caminho seria capturado pelo try/catch de quem
+// chamou em vez de navegar — devolve o id e deixa o client decidir a
+// navegação (mesmo padrão de app/fontes/nova/NovaFonteArquivoForm.tsx).
+export async function createFormularioSource(input: CriarFormularioInput) {
+  return criarFormularioNativo(input);
 }
 
 export async function updateSourceMeta(sourceId: string, formData: FormData) {

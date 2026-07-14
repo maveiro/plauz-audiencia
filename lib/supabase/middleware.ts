@@ -2,7 +2,13 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/database.types";
 
-const EXEMPT_PATHS = ["/login", "/auth/callback", "/acesso-negado"];
+// /f e /api/f são a página pública de formulário nativo e sua rota de
+// submissão — deliberadamente abertas a qualquer visitante da internet, sem
+// sessão (ver CLAUDE.md, "Camada adicional: formulários nativos"). Diferente
+// de /api/cron/sync (que tem seu próprio segredo, CRON_SECRET), aqui não há
+// segredo nenhum: é a primeira superfície do produto que recebe dado de
+// fora.
+const EXEMPT_PATHS = ["/login", "/auth/callback", "/acesso-negado", "/f", "/api/f"];
 const ALLOWED_DOMAIN = (process.env.ALLOWED_EMAIL_DOMAIN ?? "plauz.com.br").trim().toLowerCase();
 
 /**
@@ -66,6 +72,13 @@ export async function updateSession(request: NextRequest) {
     await supabase.auth.signOut();
     return NextResponse.redirect(new URL("/acesso-negado", request.url));
   }
+
+  // Repassa o pathname pro root layout (Server Component) decidir se
+  // renderiza o chrome autenticado (header/nav) — /f/** usa um shell
+  // público enxuto em vez disso. headers() não expõe a URL da requisição
+  // por padrão; este é o jeito padrão de contornar isso sem duplicar o
+  // root layout inteiro num route group separado.
+  response.headers.set("x-pathname", pathname);
 
   return response;
 }
