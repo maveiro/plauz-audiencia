@@ -123,6 +123,16 @@ Toda rota da aplicação exige login — restrito a um domínio de e-mail
    (mesmos valores de `SUPABASE_URL`/`SUPABASE_ANON_KEY`, só expostos ao
    bundle do browser) e `ALLOWED_EMAIL_DOMAIN` no `.env.local`.
 
+**Se o login falhar com `Unable to exchange external code` (erro do
+Supabase, não da aplicação):** o Google não permite mais ver/baixar um
+Client Secret depois de criado — só é mostrado uma vez, na hora. Se houver
+qualquer dúvida sobre o valor colado no Supabase, não dá pra "conferir se
+bate"; a única forma confiável de corrigir é gerar um Client Secret novo
+(Google Cloud → Clients → o client → **+ Add secret**, funciona em paralelo
+ao antigo, sem downtime) e colar esse valor novo no Supabase. Confira também
+se a lista de Redirect URLs do passo 2 não ficou vazia — outra causa comum
+do mesmo erro.
+
 ### 8. Rodar localmente
 ```bash
 npm run dev

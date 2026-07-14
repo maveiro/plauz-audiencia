@@ -3,7 +3,7 @@
 Cada fase deve ser concluída e validada isoladamente antes de avançar para a
 próxima. Marque o checklist conforme for concluindo.
 
-> **Nota de status:** o código de todas as fases (0 a 7) está implementado no
+> **Nota de status:** o código de todas as fases (0 a 8) está implementado no
 > repositório. Os checkboxes abaixo continuam desmarcados de propósito — cada
 > um representa uma validação contra o ambiente real (Supabase, Google Sheets,
 > Vercel) que só você pode confirmar rodando o sistema. Ver "Status do
@@ -179,3 +179,33 @@ for aparecendo.
 
 - [ ] Página simples mostrando `sync_logs` recentes (sucesso/erro por fonte)
 - [ ] (Opcional) Alerta por e-mail quando uma sincronização falha
+
+---
+
+## Fase 8 — Autenticação (fora do escopo original — motivada por auditoria de segurança)
+
+> A aplicação chegou a rodar em produção sem nenhuma autenticação (só
+> `/api/cron/sync` tinha proteção própria via `CRON_SECRET`), expondo
+> nome/e-mail/telefone real de interessados pra qualquer um com a URL. Esta
+> fase fecha isso — ver ARCHITECTURE.md, seção "Autenticação", pro desenho
+> completo.
+
+- [ ] `middleware.ts` + `lib/supabase/middleware.ts` protegendo toda rota por
+      padrão, exceto `/login`, `/auth/callback`, `/acesso-negado` e
+      `/api/cron/sync`
+- [ ] Login via Google OAuth (Supabase Auth), restrito a `ALLOWED_EMAIL_DOMAIN`
+      — checagem principal em `app/auth/callback/route.ts` (desloga e
+      redireciona pra `/acesso-negado` se o domínio não bater), repetida no
+      middleware como defesa em profundidade
+- [ ] Três clients Supabase separados por contexto (`server.ts` service role,
+      `serverClient.ts` ciente de sessão, `client.ts` browser) — nunca
+      misturar
+- [ ] Google Cloud Console (Google Auth Platform: Audience/Branding/Clients)
+      e Supabase Auth (provider Google + Redirect URLs) configurados
+
+**Critério de conclusão:** acessar qualquer rota sem sessão redireciona pra
+`/login`; login com conta do domínio autorizado funciona e aparece em
+`auth.users`; conta de fora do domínio cai em `/acesso-negado` sem deixar
+sessão válida; `/api/cron/sync` continua respondendo por `CRON_SECRET`, sem
+redirecionar. Checkbox segue desmarcado por convenção deste arquivo (nota de
+status no topo) até validação contra o ambiente real.
