@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Inter } from "next/font/google";
+import Image from "next/image";
+import Link from "next/link";
 import { NavLinks } from "./_components/NavLinks";
 import { ToastProvider } from "./_components/ToastProvider";
 import { createClient } from "@/lib/supabase/serverClient";
 import { signOutAction } from "@/lib/auth/actions";
+import { Button } from "@/components/ui/button";
 import "./globals.css";
+import { cn } from "@/lib/utils";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -35,23 +36,22 @@ export default async function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={cn("h-full", "antialiased", geistMono.variable, "font-sans", inter.variable)}
     >
       <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900 dark:bg-black dark:text-zinc-50">
         <header className="border-b border-zinc-200 dark:border-zinc-800">
           <nav className="mx-auto flex max-w-5xl items-center gap-6 px-6 py-4 text-sm">
-            <span className="font-semibold">Interessados</span>
+            <Link href="/" className="flex items-center">
+              <Image src="/plauz-logo.png" alt="Plauz" width={800} height={322} className="h-7 w-auto" priority />
+            </Link>
             <NavLinks />
             {user && (
               <div className="ml-auto flex items-center gap-3 text-zinc-600 dark:text-zinc-400">
                 <span>{user.email}</span>
                 <form action={signOutAction}>
-                  <button
-                    type="submit"
-                    className="rounded border border-zinc-300 px-3 py-1 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
-                  >
+                  <Button type="submit" variant="outline" size="sm">
                     Sair
-                  </button>
+                  </Button>
                 </form>
               </div>
             )}

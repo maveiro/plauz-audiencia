@@ -2,6 +2,16 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function NovaFonteArquivoForm({
   eventos,
@@ -32,40 +42,34 @@ export function NovaFonteArquivoForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3 max-w-md">
-      <select
-        name="evento_id"
-        required
-        className="rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-      >
-        <option value="">Selecione um evento</option>
-        {eventos.map((evento) => (
-          <option key={evento.id} value={evento.id}>
-            {evento.label}
-          </option>
-        ))}
-      </select>
-      <input
-        name="name"
-        required
-        placeholder="Nome da fonte (ex: Formulário site oficial)"
-        className="rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-      />
-      <input
-        type="file"
-        name="file"
-        accept=".csv,.xls,.xlsx"
-        required
-        className="text-sm"
-      />
-      {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
-      <button
-        type="submit"
-        disabled={isPending}
-        className="w-fit rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900"
-      >
+    <form onSubmit={handleSubmit} className="flex max-w-md flex-col gap-3">
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="evento_id_upload">Evento</Label>
+        <Select name="evento_id" required>
+          <SelectTrigger id="evento_id_upload" className="w-full">
+            <SelectValue placeholder="Selecione um evento" />
+          </SelectTrigger>
+          <SelectContent>
+            {eventos.map((evento) => (
+              <SelectItem key={evento.id} value={evento.id}>
+                {evento.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="name_upload">Nome da fonte</Label>
+        <Input id="name_upload" name="name" required placeholder="Ex: Formulário site oficial" />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="file">Arquivo (CSV, XLS ou XLSX)</Label>
+        <Input id="file" type="file" name="file" accept=".csv,.xls,.xlsx" required />
+      </div>
+      {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
+      <Button type="submit" disabled={isPending} className="w-fit">
         {isPending ? "Enviando..." : "Criar fonte"}
-      </button>
+      </Button>
     </form>
   );
 }

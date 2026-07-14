@@ -3,6 +3,17 @@
 import { useState } from "react";
 import { createGoogleSheetsSource } from "../actions";
 import { NovaFonteArquivoForm } from "./NovaFonteArquivoForm";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Tab = "google_sheets" | "arquivo_upload";
 
@@ -14,85 +25,64 @@ export function NovaFonteTabs({
   const [tab, setTab] = useState<Tab>("google_sheets");
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-800">
-        <TabButton active={tab === "google_sheets"} onClick={() => setTab("google_sheets")}>
-          Google Sheets
-        </TabButton>
-        <TabButton active={tab === "arquivo_upload"} onClick={() => setTab("arquivo_upload")}>
-          Upload de arquivo
-        </TabButton>
-      </div>
+    <Tabs value={tab} onValueChange={(value) => setTab(value as Tab)} className="flex flex-col gap-6">
+      <TabsList variant="line">
+        <TabsTrigger value="google_sheets">Google Sheets</TabsTrigger>
+        <TabsTrigger value="arquivo_upload">Upload de arquivo</TabsTrigger>
+      </TabsList>
 
-      {tab === "google_sheets" ? (
+      <TabsContent value="google_sheets">
         <form action={createGoogleSheetsSource} className="flex max-w-md flex-col gap-3">
-          <select
-            name="evento_id"
-            required
-            className="rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-          >
-            <option value="">Selecione um evento</option>
-            {eventos.map((evento) => (
-              <option key={evento.id} value={evento.id}>
-                {evento.label}
-              </option>
-            ))}
-          </select>
-          <input
-            name="name"
-            required
-            placeholder="Nome da fonte (ex: Formulário Google Forms)"
-            className="rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-          />
-          <input
-            name="sheet_url"
-            required
-            placeholder="Link da planilha (https://docs.google.com/spreadsheets/d/...)"
-            className="rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-          />
-          <input
-            name="tab_name"
-            placeholder="Nome da aba (opcional — padrão: primeira aba)"
-            className="rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-          />
-          <p className="text-xs text-zinc-500">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="evento_id">Evento</Label>
+            <Select name="evento_id" required>
+              <SelectTrigger id="evento_id" className="w-full">
+                <SelectValue placeholder="Selecione um evento" />
+              </SelectTrigger>
+              <SelectContent>
+                {eventos.map((evento) => (
+                  <SelectItem key={evento.id} value={evento.id}>
+                    {evento.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="name">Nome da fonte</Label>
+            <Input
+              id="name"
+              name="name"
+              required
+              placeholder="Ex: Formulário Google Forms"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="sheet_url">Link da planilha</Label>
+            <Input
+              id="sheet_url"
+              name="sheet_url"
+              required
+              placeholder="https://docs.google.com/spreadsheets/d/..."
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="tab_name">Nome da aba (opcional)</Label>
+            <Input id="tab_name" name="tab_name" placeholder="Padrão: primeira aba" />
+          </div>
+          <p className="text-xs text-muted-foreground">
             Lembre de compartilhar a planilha (somente leitura) com o e-mail
             da service account do Google — ver README.md.
           </p>
-          <button
-            type="submit"
-            className="w-fit rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900"
-          >
+          <Button type="submit" className="w-fit">
             Criar fonte
-          </button>
+          </Button>
         </form>
-      ) : (
-        <NovaFonteArquivoForm eventos={eventos} />
-      )}
-    </div>
-  );
-}
+      </TabsContent>
 
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`px-4 py-2 text-sm font-medium ${
-        active
-          ? "border-b-2 border-zinc-900 text-zinc-900 dark:border-zinc-50 dark:text-zinc-50"
-          : "text-zinc-500"
-      }`}
-    >
-      {children}
-    </button>
+      <TabsContent value="arquivo_upload">
+        <NovaFonteArquivoForm eventos={eventos} />
+      </TabsContent>
+    </Tabs>
   );
 }

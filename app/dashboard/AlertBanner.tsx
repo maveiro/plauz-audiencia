@@ -1,4 +1,6 @@
 import type { Alerta } from "@/lib/dashboard/queries";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export function AlertBanner({ alertas }: { alertas: Alerta[] }) {
   if (alertas.length === 0) return null;
@@ -6,12 +8,13 @@ export function AlertBanner({ alertas }: { alertas: Alerta[] }) {
   const critico = alertas.some((a) => a.nivel === "critical");
 
   return (
-    <div
-      className={`flex flex-col gap-2 rounded-lg border p-4 text-sm ${
+    <Card
+      className={cn(
+        "flex flex-col gap-2 p-4 text-sm ring-1",
         critico
-          ? "border-[color:var(--status-critical)]/30 bg-[color:var(--status-critical)]/10"
-          : "border-[color:var(--status-warning)]/30 bg-[color:var(--status-warning)]/10"
-      }`}
+          ? "bg-[color:var(--status-critical)]/10 ring-[color:var(--status-critical)]/30"
+          : "bg-[color:var(--status-warning)]/10 ring-[color:var(--status-warning)]/30",
+      )}
     >
       <div className="flex items-center gap-2 font-medium">
         <span aria-hidden>{critico ? "⛔" : "⚠️"}</span>
@@ -30,6 +33,6 @@ export function AlertBanner({ alertas }: { alertas: Alerta[] }) {
           </li>
         ))}
       </ul>
-    </div>
+    </Card>
   );
 }

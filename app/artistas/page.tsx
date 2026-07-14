@@ -1,5 +1,10 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { createArtista, createEvento } from "./actions";
+import { createArtista } from "./actions";
+import { NovoEventoForm } from "./NovoEventoForm";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 
@@ -29,61 +34,25 @@ export default async function ArtistasPage() {
         </p>
       </div>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-zinc-200 p-5 dark:border-zinc-800">
+      <Card className="flex flex-col gap-3 p-5">
         <h2 className="font-medium">Novo artista</h2>
-        <form action={createArtista} className="flex gap-3">
-          <input
-            name="nome"
-            required
-            placeholder="Nome do artista"
-            className="flex-1 rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-          />
-          <button
-            type="submit"
-            className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900"
-          >
-            Criar
-          </button>
+        <form action={createArtista} className="flex items-end gap-3">
+          <div className="flex flex-1 flex-col gap-1.5">
+            <Label htmlFor="artista_nome">Nome do artista</Label>
+            <Input id="artista_nome" name="nome" required placeholder="Nome do artista" />
+          </div>
+          <Button type="submit">Criar</Button>
         </form>
-      </section>
+      </Card>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-zinc-200 p-5 dark:border-zinc-800">
+      <Card className="flex flex-col gap-3 p-5">
         <h2 className="font-medium">Novo evento</h2>
         {artistas && artistas.length > 0 ? (
-          <form action={createEvento} className="flex flex-wrap gap-3">
-            <select
-              name="artista_id"
-              required
-              className="rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-            >
-              {artistas.map((artista) => (
-                <option key={artista.id} value={artista.id}>
-                  {artista.nome}
-                </option>
-              ))}
-            </select>
-            <input
-              name="nome"
-              required
-              placeholder="Nome do evento"
-              className="flex-1 rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-            />
-            <input
-              type="date"
-              name="data_evento"
-              className="rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-            />
-            <button
-              type="submit"
-              className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900"
-            >
-              Criar
-            </button>
-          </form>
+          <NovoEventoForm artistas={artistas} />
         ) : (
           <p className="text-sm text-zinc-500">Cadastre um artista primeiro.</p>
         )}
-      </section>
+      </Card>
 
       <section className="flex flex-col gap-4">
         <h2 className="font-medium">Artistas e eventos</h2>
@@ -91,10 +60,7 @@ export default async function ArtistasPage() {
           <p className="text-sm text-zinc-500">Nenhum artista cadastrado ainda.</p>
         ) : (
           artistas.map((artista) => (
-            <div
-              key={artista.id}
-              className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
-            >
+            <Card key={artista.id} className="p-4">
               <h3 className="font-semibold">{artista.nome}</h3>
               {artista.eventos.length === 0 ? (
                 <p className="text-sm text-zinc-500">Sem eventos ainda.</p>
@@ -111,7 +77,7 @@ export default async function ArtistasPage() {
                   ))}
                 </ul>
               )}
-            </div>
+            </Card>
           ))
         )}
       </section>

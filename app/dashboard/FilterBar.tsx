@@ -2,8 +2,23 @@
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { PERIODOS, PERIODO_LABELS, type Periodo } from "@/lib/dashboard/dateRange";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const CIDADE_SEP = "|";
+
+// Radix Select não aceita SelectItem com value="" — sentinelas traduzidas
+// pra `null` (sem filtro) na borda do estado/URL.
+const TODOS_ARTISTAS = "__todos_artistas__";
+const TODAS_FONTES = "__todas_fontes__";
+const TODAS_CIDADES = "__todas_cidades__";
 
 interface FilterBarProps {
   periodo: Periodo;
@@ -67,74 +82,82 @@ export function FilterBar({
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex flex-wrap gap-1 rounded-full border border-zinc-200 p-1 dark:border-zinc-800">
           {PERIODOS.map((p) => (
-            <button
+            <Button
               key={p}
               type="button"
+              variant={p === periodo ? "default" : "ghost"}
+              size="sm"
               onClick={() => updateParam("periodo", p)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                p === periodo
-                  ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
-                  : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900"
-              }`}
+              className="h-auto rounded-full px-3 py-1 text-xs"
             >
               {PERIODO_LABELS[p]}
-            </button>
+            </Button>
           ))}
         </div>
 
-        <select
-          value={artistaId ?? ""}
-          onChange={(e) => updateParam("artista_id", e.target.value || null)}
-          aria-label="Filtrar por artista"
-          className="rounded border border-zinc-300 bg-transparent px-3 py-1.5 text-sm dark:border-zinc-700"
+        <Select
+          value={artistaId ?? TODOS_ARTISTAS}
+          onValueChange={(value) => updateParam("artista_id", value === TODOS_ARTISTAS ? null : value)}
         >
-          <option value="">Todos os artistas</option>
-          {artistas.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.nome}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger aria-label="Filtrar por artista">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={TODOS_ARTISTAS}>Todos os artistas</SelectItem>
+            {artistas.map((a) => (
+              <SelectItem key={a.id} value={a.id}>
+                {a.nome}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        <select
-          value={fonteId ?? ""}
-          onChange={(e) => updateParam("fonte_id", e.target.value || null)}
-          aria-label="Filtrar por fonte"
-          className="rounded border border-zinc-300 bg-transparent px-3 py-1.5 text-sm dark:border-zinc-700"
+        <Select
+          value={fonteId ?? TODAS_FONTES}
+          onValueChange={(value) => updateParam("fonte_id", value === TODAS_FONTES ? null : value)}
         >
-          <option value="">Todas as fontes</option>
-          {fontes.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger aria-label="Filtrar por fonte">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={TODAS_FONTES}>Todas as fontes</SelectItem>
+            {fontes.map((f) => (
+              <SelectItem key={f.id} value={f.id}>
+                {f.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        <select
-          value={cidadeValue}
-          onChange={(e) => updateCidade(e.target.value)}
-          aria-label="Filtrar por cidade"
-          className="rounded border border-zinc-300 bg-transparent px-3 py-1.5 text-sm dark:border-zinc-700"
+        <Select
+          value={cidadeValue || TODAS_CIDADES}
+          onValueChange={(value) => updateCidade(value === TODAS_CIDADES ? "" : value)}
         >
-          <option value="">Todas as cidades</option>
-          {cidades.map((c) => (
-            <option key={`${c.cidade}${CIDADE_SEP}${c.estado ?? ""}`} value={`${c.cidade}${CIDADE_SEP}${c.estado ?? ""}`}>
-              {c.estado ? `${c.cidade} — ${c.estado}` : c.cidade}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger aria-label="Filtrar por cidade">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={TODAS_CIDADES}>Todas as cidades</SelectItem>
+            {cidades.map((c) => (
+              <SelectItem
+                key={`${c.cidade}${CIDADE_SEP}${c.estado ?? ""}`}
+                value={`${c.cidade}${CIDADE_SEP}${c.estado ?? ""}`}
+              >
+                {c.estado ? `${c.cidade} — ${c.estado}` : c.cidade}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {eventoLabel && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-zinc-500">Filtrado por clique no gráfico:</span>
-          <button
-            type="button"
-            onClick={() => clearParams(["evento_id"])}
-            className="flex items-center gap-1 rounded-full bg-zinc-900 px-3 py-1 text-xs text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
-          >
-            {eventoLabel} <span aria-hidden>×</span>
-          </button>
+          <span className="text-xs text-muted-foreground">Filtrado por clique no gráfico:</span>
+          <Badge asChild variant="secondary">
+            <button type="button" onClick={() => clearParams(["evento_id"])} className="gap-1">
+              {eventoLabel} <span aria-hidden>×</span>
+            </button>
+          </Badge>
         </div>
       )}
     </div>

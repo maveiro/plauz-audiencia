@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
 
 export function GoogleSignInButton({ next }: { next: string }) {
   const [loading, setLoading] = useState(false);
@@ -22,13 +23,8 @@ export function GoogleSignInButton({ next }: { next: string }) {
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      disabled={loading}
-      className="flex w-full items-center justify-center gap-2 rounded border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
-    >
+    <Button type="button" variant="outline" onClick={handleClick} disabled={loading} className="w-full">
       {loading ? "Redirecionando…" : "Entrar com Google"}
-    </button>
+    </Button>
   );
 }

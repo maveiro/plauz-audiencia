@@ -1,5 +1,6 @@
 import type { FonteQualidade } from "@/lib/dashboard/queries";
 import { StatusPill } from "@/app/_components/StatusPill";
+import { Card } from "@/components/ui/card";
 
 function formatPct(pct: number | null) {
   return pct === null ? "—" : `${pct.toFixed(0)}%`;
@@ -11,7 +12,7 @@ export function QualityTable({ fontes }: { fontes: FonteQualidade[] }) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+    <Card className="overflow-x-auto p-0">
       <table className="w-full text-sm">
         <thead className="bg-zinc-50 text-left dark:bg-zinc-900">
           <tr>
@@ -46,6 +47,6 @@ export function QualityTable({ fontes }: { fontes: FonteQualidade[] }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </Card>
   );
 }

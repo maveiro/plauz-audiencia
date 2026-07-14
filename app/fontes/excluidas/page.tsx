@@ -1,5 +1,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { restoreSource } from "../actions";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 
@@ -31,13 +33,10 @@ export default async function FontesExcluidasPage() {
       ) : (
         <div className="flex flex-col gap-3">
           {sources.map((source) => (
-            <div
-              key={source.id}
-              className="flex items-center justify-between rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
-            >
+            <Card key={source.id} className="flex flex-row items-center justify-between p-4">
               <div>
                 <p className="font-medium">{source.name}</p>
-                <p className="text-sm text-zinc-500">
+                <p className="text-sm text-muted-foreground">
                   {source.eventos?.artistas?.nome} — {source.eventos?.nome}
                 </p>
                 <p className="text-xs text-zinc-400">
@@ -47,14 +46,11 @@ export default async function FontesExcluidasPage() {
                 </p>
               </div>
               <form action={restoreSource.bind(null, source.id)}>
-                <button
-                  type="submit"
-                  className="rounded border border-zinc-300 px-3 py-1 text-xs font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
-                >
+                <Button type="submit" variant="outline" size="sm">
                   Restaurar
-                </button>
+                </Button>
               </form>
-            </div>
+            </Card>
           ))}
         </div>
       )}

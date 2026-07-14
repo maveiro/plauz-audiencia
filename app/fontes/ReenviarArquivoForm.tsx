@@ -3,6 +3,9 @@
 import { useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/app/_components/ToastProvider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export function ReenviarArquivoForm({ sourceId }: { sourceId: string }) {
   const [isPending, startTransition] = useTransition();
@@ -32,16 +35,24 @@ export function ReenviarArquivoForm({ sourceId }: { sourceId: string }) {
     });
   }
 
+  const inputId = `reenviar-arquivo-${sourceId}`;
+
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="flex items-center gap-2">
-      <input type="file" name="file" accept=".csv,.xls,.xlsx" required className="text-xs" />
-      <button
-        type="submit"
-        disabled={isPending}
-        className="rounded border border-zinc-300 px-3 py-1 text-xs font-medium hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
-      >
+      <Label htmlFor={inputId} className="sr-only">
+        Arquivo
+      </Label>
+      <Input
+        id={inputId}
+        type="file"
+        name="file"
+        accept=".csv,.xls,.xlsx"
+        required
+        className="h-auto text-xs file:text-xs"
+      />
+      <Button type="submit" variant="outline" size="sm" disabled={isPending}>
         {isPending ? "Enviando..." : "Reenviar arquivo"}
-      </button>
+      </Button>
     </form>
   );
 }

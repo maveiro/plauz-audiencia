@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/app/_components/ToastProvider";
+import { Button } from "@/components/ui/button";
 
 export function SyncButton({ sourceId }: { sourceId: string }) {
   const [isPending, startTransition] = useTransition();
@@ -23,13 +24,8 @@ export function SyncButton({ sourceId }: { sourceId: string }) {
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      disabled={isPending}
-      className="rounded border border-zinc-300 px-3 py-1 text-xs font-medium hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
-    >
+    <Button type="button" variant="outline" size="sm" onClick={handleClick} disabled={isPending}>
       {isPending ? "Sincronizando..." : "Sincronizar agora"}
-    </button>
+    </Button>
   );
 }

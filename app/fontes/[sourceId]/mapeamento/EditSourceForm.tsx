@@ -4,6 +4,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/app/_components/ToastProvider";
 import { updateSourceMeta } from "../../actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export function EditSourceForm({
   sourceId,
@@ -40,13 +43,9 @@ export function EditSourceForm({
 
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="w-fit rounded border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
-      >
+      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)} className="w-fit">
         Editar dados da fonte
-      </button>
+      </Button>
     );
   }
 
@@ -55,46 +54,47 @@ export function EditSourceForm({
       onSubmit={handleSubmit}
       className="flex max-w-md flex-col gap-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
     >
-      <input
-        name="name"
-        defaultValue={name}
-        required
-        placeholder="Nome da fonte"
-        className="rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-      />
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="edit_name">Nome da fonte</Label>
+        <Input id="edit_name" name="name" defaultValue={name} required placeholder="Nome da fonte" />
+      </div>
       {tipo === "google_sheets" && (
         <>
-          <input
-            name="sheet_url"
-            defaultValue={sheetUrl ?? ""}
-            required
-            placeholder="Link da planilha (https://docs.google.com/spreadsheets/d/...)"
-            className="rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-          />
-          <input
-            name="tab_name"
-            defaultValue={tabName ?? ""}
-            placeholder="Nome da aba (opcional — padrão: primeira aba)"
-            className="rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-          />
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="edit_sheet_url">Link da planilha</Label>
+            <Input
+              id="edit_sheet_url"
+              name="sheet_url"
+              defaultValue={sheetUrl ?? ""}
+              required
+              placeholder="https://docs.google.com/spreadsheets/d/..."
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="edit_tab_name">Nome da aba (opcional)</Label>
+            <Input
+              id="edit_tab_name"
+              name="tab_name"
+              defaultValue={tabName ?? ""}
+              placeholder="Padrão: primeira aba"
+            />
+          </div>
         </>
       )}
       <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="w-fit rounded bg-zinc-900 px-4 py-1.5 text-sm font-medium text-zinc-50 hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900"
-        >
+        <Button type="submit" size="sm" disabled={isPending} className="w-fit">
           {isPending ? "Salvando..." : "Salvar"}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => setOpen(false)}
           disabled={isPending}
-          className="w-fit rounded border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
+          className="w-fit"
         >
           Cancelar
-        </button>
+        </Button>
       </div>
     </form>
   );

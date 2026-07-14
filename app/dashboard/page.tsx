@@ -8,6 +8,8 @@ import { TrendChart } from "./TrendChart";
 import { RankingChart } from "./RankingChart";
 import { GeoChart } from "./GeoChart";
 import { QualityTable } from "./QualityTable";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -121,23 +123,20 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <QualityTable fontes={dados.qualidadePorFonte} />
       </section>
 
-      <section className="flex items-center justify-between rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+      <Card className="flex flex-row items-center justify-between p-4">
         <div>
           <p className="font-medium">
             {dados.sobreposicao.pessoas.toLocaleString("pt-BR")} pessoas interessadas em mais de um
             artista
           </p>
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-muted-foreground">
             de {dados.sobreposicao.totalInteressados.toLocaleString("pt-BR")} interessados no total
           </p>
         </div>
-        <Link
-          href="/publico-sobreposto"
-          className="rounded border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
-        >
-          Ver detalhes
-        </Link>
-      </section>
+        <Button variant="outline" asChild>
+          <Link href="/publico-sobreposto">Ver detalhes</Link>
+        </Button>
+      </Card>
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { Card } from "@/components/ui/card";
+
 interface StatTileProps {
   label: string;
   value: string;
@@ -7,8 +9,8 @@ interface StatTileProps {
 
 export function StatTile({ label, value, delta, hint }: StatTileProps) {
   return (
-    <div className="flex flex-col gap-1 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-      <span className="text-sm text-zinc-500">{label}</span>
+    <Card className="flex flex-col gap-1 p-4">
+      <span className="text-sm text-muted-foreground">{label}</span>
       <div className="flex items-baseline gap-2">
         <span className="text-2xl font-semibold tabular-nums">{value}</span>
         {delta && (
@@ -18,14 +20,14 @@ export function StatTile({ label, value, delta, hint }: StatTileProps) {
                 ? "text-sm font-medium text-[color:var(--status-good)]"
                 : delta.direction === "down"
                   ? "text-sm font-medium text-[color:var(--status-critical)]"
-                  : "text-sm font-medium text-zinc-500"
+                  : "text-sm font-medium text-muted-foreground"
             }
           >
             {delta.direction === "up" ? "▲" : delta.direction === "down" ? "▼" : "•"} {delta.value}
           </span>
         )}
       </div>
-      {hint && <span className="text-xs text-zinc-400">{hint}</span>}
-    </div>
+      {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+    </Card>
   );
 }

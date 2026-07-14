@@ -3,6 +3,9 @@
 import { useState, useTransition } from "react";
 import { useToast } from "@/app/_components/ToastProvider";
 import { resolveRevisao } from "./actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export function RevisaoRow({
   interessadoId,
@@ -50,27 +53,30 @@ export function RevisaoRow({
           </p>
         )}
       </div>
-      <input
+      <Label htmlFor={`cidade-${interessadoId}`} className="sr-only">
+        Cidade normalizada
+      </Label>
+      <Input
+        id={`cidade-${interessadoId}`}
         value={cidade}
         onChange={(e) => setCidade(e.target.value)}
         placeholder="cidade normalizada"
-        className="rounded border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+        className="h-8 w-auto"
       />
-      <input
+      <Label htmlFor={`estado-${interessadoId}`} className="sr-only">
+        UF
+      </Label>
+      <Input
+        id={`estado-${interessadoId}`}
         value={estado}
         onChange={(e) => setEstado(e.target.value)}
         placeholder="UF"
         maxLength={2}
-        className="w-16 rounded border border-zinc-300 px-2 py-1 text-sm uppercase dark:border-zinc-700 dark:bg-zinc-900"
+        className="h-8 w-16 uppercase"
       />
-      <button
-        type="button"
-        onClick={handleConfirm}
-        disabled={isPending}
-        className="rounded bg-zinc-900 px-3 py-1 text-xs font-medium text-zinc-50 hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900"
-      >
+      <Button type="button" size="sm" onClick={handleConfirm} disabled={isPending}>
         {isPending ? "Salvando..." : "Confirmar"}
-      </button>
+      </Button>
     </div>
   );
 }

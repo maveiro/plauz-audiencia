@@ -1,4 +1,5 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { Card } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,7 @@ export default async function SyncLogsPage() {
       {!logs || logs.length === 0 ? (
         <p className="text-sm text-zinc-500">Nenhuma sincronização registrada ainda.</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+        <Card className="overflow-x-auto p-0">
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 text-left dark:bg-zinc-900">
               <tr>
@@ -84,7 +85,7 @@ export default async function SyncLogsPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </Card>
       )}
     </div>
   );

@@ -5,6 +5,18 @@ import { useRouter } from "next/navigation";
 import { TRANSFORM_NAMES } from "@/lib/transforms";
 import { useToast } from "@/app/_components/ToastProvider";
 import { saveFieldMappings, type FieldMappingInput } from "./actions";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// Radix Select não aceita SelectItem com value="" — sentinela traduzido
+// pra `null` (transform ausente) na borda do estado.
+const SEM_TRANSFORM = "__sem_transform__";
 
 const CANONICAL_FIELD_LABELS: Record<FieldMappingInput["canonical_field"], string> = {
   nome_completo: "Nome completo",
@@ -71,52 +83,68 @@ export function FieldMappingsForm({
       <div className="flex flex-col gap-2">
         {rows.map((row, index) => (
           <div key={index} className="flex flex-wrap items-center gap-2">
-            <select
+            <Select
               value={row.source_field}
-              onChange={(e) => updateRow(index, { source_field: e.target.value })}
-              className="rounded border border-zinc-300 px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              onValueChange={(value) => updateRow(index, { source_field: value })}
             >
-              {detectedColumns.map((col) => (
-                <option key={col} value={col}>
-                  {col}
-                </option>
-              ))}
-            </select>
-            <span className="text-zinc-400">→</span>
-            <select
+              <SelectTrigger aria-label="Coluna de origem">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {detectedColumns.map((col) => (
+                  <SelectItem key={col} value={col}>
+                    {col}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-muted-foreground">→</span>
+            <Select
               value={row.canonical_field}
-              onChange={(e) =>
+              onValueChange={(value) =>
                 updateRow(index, {
-                  canonical_field: e.target.value as FieldMappingInput["canonical_field"],
+                  canonical_field: value as FieldMappingInput["canonical_field"],
                 })
               }
-              className="rounded border border-zinc-300 px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
             >
-              {CANONICAL_FIELDS.map((field) => (
-                <option key={field} value={field}>
-                  {CANONICAL_FIELD_LABELS[field]}
-                </option>
-              ))}
-            </select>
-            <select
-              value={row.transform ?? ""}
-              onChange={(e) => updateRow(index, { transform: e.target.value || null })}
-              className="rounded border border-zinc-300 px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              <SelectTrigger aria-label="Campo canônico">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CANONICAL_FIELDS.map((field) => (
+                  <SelectItem key={field} value={field}>
+                    {CANONICAL_FIELD_LABELS[field]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={row.transform ?? SEM_TRANSFORM}
+              onValueChange={(value) =>
+                updateRow(index, { transform: value === SEM_TRANSFORM ? null : value })
+              }
             >
-              <option value="">sem transform</option>
-              {TRANSFORM_NAMES.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-            <button
+              <SelectTrigger aria-label="Transform">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SEM_TRANSFORM}>sem transform</SelectItem>
+                {TRANSFORM_NAMES.map((name) => (
+                  <SelectItem key={name} value={name}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
               type="button"
+              variant="link"
+              size="sm"
               onClick={() => removeRow(index)}
-              className="text-xs text-red-600 hover:underline dark:text-red-400"
+              className="text-destructive"
             >
               remover
-            </button>
+            </Button>
             {row.canonical_field === "submitted_at" &&
               !DATE_TRANSFORMS.includes(row.transform ?? "") && (
                 <span className="text-xs text-amber-600 dark:text-amber-400">
@@ -130,22 +158,12 @@ export function FieldMappingsForm({
       </div>
 
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={addRow}
-          disabled={detectedColumns.length === 0}
-          className="w-fit rounded border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
-        >
+        <Button type="button" variant="outline" size="sm" onClick={addRow} disabled={detectedColumns.length === 0}>
           + Adicionar mapeamento
-        </button>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={isPending}
-          className="w-fit rounded bg-zinc-900 px-4 py-1.5 text-sm font-medium text-zinc-50 hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900"
-        >
+        </Button>
+        <Button type="button" size="sm" onClick={handleSave} disabled={isPending}>
           {isPending ? "Salvando..." : "Salvar mapeamento"}
-        </button>
+        </Button>
       </div>
 
       <p className="text-xs text-zinc-500">

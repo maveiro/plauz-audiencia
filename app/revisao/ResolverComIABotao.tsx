@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { resolverComIA } from "./actions";
+import { Button } from "@/components/ui/button";
 
 export function ResolverComIABotao() {
   const [isPending, startTransition] = useTransition();
@@ -25,14 +26,9 @@ export function ResolverComIABotao() {
 
   return (
     <div className="flex flex-col items-start gap-1 sm:items-end">
-      <button
-        type="button"
-        onClick={handleClick}
-        disabled={isPending}
-        className="rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
-      >
+      <Button type="button" size="sm" onClick={handleClick} disabled={isPending}>
         {isPending ? "Resolvendo com IA..." : "Resolver com IA"}
-      </button>
+      </Button>
       {resultado && (
         <p className="max-w-xs text-right text-xs text-zinc-500">
           {resultado.resolvidosAutomaticamente} de {resultado.processados}{" "}
