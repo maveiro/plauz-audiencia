@@ -85,6 +85,7 @@ export function FilterBar({
         <select
           value={artistaId ?? ""}
           onChange={(e) => updateParam("artista_id", e.target.value || null)}
+          aria-label="Filtrar por artista"
           className="rounded border border-zinc-300 bg-transparent px-3 py-1.5 text-sm dark:border-zinc-700"
         >
           <option value="">Todos os artistas</option>
@@ -98,6 +99,7 @@ export function FilterBar({
         <select
           value={fonteId ?? ""}
           onChange={(e) => updateParam("fonte_id", e.target.value || null)}
+          aria-label="Filtrar por fonte"
           className="rounded border border-zinc-300 bg-transparent px-3 py-1.5 text-sm dark:border-zinc-700"
         >
           <option value="">Todas as fontes</option>
@@ -111,6 +113,7 @@ export function FilterBar({
         <select
           value={cidadeValue}
           onChange={(e) => updateCidade(e.target.value)}
+          aria-label="Filtrar por cidade"
           className="rounded border border-zinc-300 bg-transparent px-3 py-1.5 text-sm dark:border-zinc-700"
         >
           <option value="">Todas as cidades</option>

@@ -41,6 +41,48 @@ export async function createGoogleSheetsSource(formData: FormData) {
   redirect(`/fontes/${data.id}/mapeamento`);
 }
 
+export async function updateSourceMeta(sourceId: string, formData: FormData) {
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) throw new Error("Nome da fonte é obrigatório.");
+
+  const supabase = createServiceRoleClient();
+
+  const { data: source, error: sourceError } = await supabase
+    .from("sources")
+    .select("tipo")
+    .eq("id", sourceId)
+    .single();
+  if (sourceError || !source) throw new Error("Fonte não encontrada.");
+
+  const patch: { name: string; sheet_url?: string; sheet_id?: string; tab_name?: string | null } = {
+    name,
+  };
+
+  if (source.tipo === "google_sheets") {
+    const sheetUrl = String(formData.get("sheet_url") ?? "").trim();
+    const tabName = String(formData.get("tab_name") ?? "").trim();
+
+    if (!sheetUrl) throw new Error("Link da planilha é obrigatório.");
+
+    const sheetId = extractSheetId(sheetUrl);
+    if (!sheetId) {
+      throw new Error(
+        "Não foi possível extrair o ID da planilha a partir do link informado.",
+      );
+    }
+
+    patch.sheet_url = sheetUrl;
+    patch.sheet_id = sheetId;
+    patch.tab_name = tabName || null;
+  }
+
+  const { error } = await supabase.from("sources").update(patch).eq("id", sourceId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/fontes");
+  revalidatePath(`/fontes/${sourceId}/mapeamento`);
+}
+
 export async function softDeleteSource(sourceId: string) {
   const supabase = createServiceRoleClient();
   const { error } = await supabase

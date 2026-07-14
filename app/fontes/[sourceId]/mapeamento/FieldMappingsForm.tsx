@@ -3,16 +3,21 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { TRANSFORM_NAMES } from "@/lib/transforms";
+import { useToast } from "@/app/_components/ToastProvider";
 import { saveFieldMappings, type FieldMappingInput } from "./actions";
 
-const CANONICAL_FIELDS: FieldMappingInput["canonical_field"][] = [
-  "nome_completo",
-  "telefone",
-  "email",
-  "cidade",
-  "estado",
-  "submitted_at",
-];
+const CANONICAL_FIELD_LABELS: Record<FieldMappingInput["canonical_field"], string> = {
+  nome_completo: "Nome completo",
+  telefone: "Telefone",
+  email: "E-mail",
+  cidade: "Cidade",
+  estado: "Estado",
+  submitted_at: "Data de envio",
+};
+
+const CANONICAL_FIELDS = Object.keys(
+  CANONICAL_FIELD_LABELS,
+) as FieldMappingInput["canonical_field"][];
 
 const DATE_TRANSFORMS = ["parse_date_dmy", "parse_date_mdy"];
 
@@ -27,8 +32,8 @@ export function FieldMappingsForm({
 }) {
   const [rows, setRows] = useState<FieldMappingInput[]>(initialMappings);
   const [isPending, startTransition] = useTransition();
-  const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
+  const showToast = useToast();
 
   function addRow() {
     setRows((prev) => [
@@ -50,14 +55,13 @@ export function FieldMappingsForm({
   }
 
   function handleSave() {
-    setMessage(null);
     startTransition(async () => {
       try {
         await saveFieldMappings(sourceId, rows);
-        setMessage("Mapeamento salvo.");
+        showToast("Mapeamento salvo.", "success");
         router.refresh();
       } catch (err) {
-        setMessage(`Erro: ${(err as Error).message}`);
+        showToast(`Erro ao salvar mapeamento: ${(err as Error).message}`, "error");
       }
     });
   }
@@ -90,7 +94,7 @@ export function FieldMappingsForm({
             >
               {CANONICAL_FIELDS.map((field) => (
                 <option key={field} value={field}>
-                  {field}
+                  {CANONICAL_FIELD_LABELS[field]}
                 </option>
               ))}
             </select>
@@ -142,7 +146,6 @@ export function FieldMappingsForm({
         >
           {isPending ? "Salvando..." : "Salvar mapeamento"}
         </button>
-        {message && <span className="text-sm text-zinc-500">{message}</span>}
       </div>
 
       <p className="text-xs text-zinc-500">

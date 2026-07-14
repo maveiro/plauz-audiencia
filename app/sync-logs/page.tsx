@@ -17,12 +17,26 @@ export default async function SyncLogsPage() {
     throw new Error(`Falha ao carregar sync_logs: ${error.message}`);
   }
 
+  // Contagem exata separada do limit acima — sem isso, uma fonte com erro
+  // recorrente fora da janela das últimas LIMIT execuções não teria nenhum
+  // sinal de que existe histórico mais antigo não visível aqui.
+  const { count: totalLogs, error: countError } = await supabase
+    .from("sync_logs")
+    .select("id", { count: "exact", head: true });
+
+  if (countError) {
+    throw new Error(`Falha ao contar sync_logs: ${countError.message}`);
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold">Sincronizações</h1>
         <p className="text-zinc-600 dark:text-zinc-400">
-          Histórico de execuções, sucesso ou erro, por fonte (últimas {LIMIT}).
+          Histórico de execuções, sucesso ou erro, por fonte.{" "}
+          {totalLogs !== null && totalLogs > LIMIT
+            ? `${totalLogs.toLocaleString("pt-BR")} no total — mostrando as ${LIMIT} mais recentes.`
+            : `${(totalLogs ?? 0).toLocaleString("pt-BR")} no total.`}
         </p>
       </div>
 

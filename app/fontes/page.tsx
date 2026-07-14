@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { softDeleteSource } from "./actions";
+import { StatusPill } from "@/app/_components/StatusPill";
 import { SyncButton } from "./SyncButton";
 import { ReenviarArquivoForm } from "./ReenviarArquivoForm";
+import { DeleteSourceButton } from "./DeleteSourceButton";
 
 export const dynamic = "force-dynamic";
 
@@ -58,15 +59,7 @@ export default async function FontesPage() {
                   <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
                     {source.tipo === "google_sheets" ? "Google Sheets" : "Arquivo"}
                   </span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs ${
-                      source.status === "error"
-                        ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400"
-                        : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
-                    }`}
-                  >
-                    {source.status}
-                  </span>
+                  <StatusPill status={source.status} />
                 </div>
                 <p className="text-sm text-zinc-500">
                   {source.eventos?.artistas?.nome} — {source.eventos?.nome}
@@ -91,14 +84,7 @@ export default async function FontesPage() {
                 ) : (
                   <ReenviarArquivoForm sourceId={source.id} />
                 )}
-                <form action={softDeleteSource.bind(null, source.id)}>
-                  <button
-                    type="submit"
-                    className="rounded border border-red-300 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
-                  >
-                    Excluir
-                  </button>
-                </form>
+                <DeleteSourceButton sourceId={source.id} sourceName={source.name} />
               </div>
             </div>
           ))}

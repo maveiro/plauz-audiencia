@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useToast } from "@/app/_components/ToastProvider";
 import { resolveRevisao } from "./actions";
 
 export function RevisaoRow({
@@ -20,11 +21,16 @@ export function RevisaoRow({
   const [estado, setEstado] = useState(sugestaoIA?.estado ?? estadoInformada ?? "");
   const [isPending, startTransition] = useTransition();
   const [done, setDone] = useState(false);
+  const showToast = useToast();
 
   function handleConfirm() {
     startTransition(async () => {
-      await resolveRevisao(interessadoId, cidade, estado);
-      setDone(true);
+      try {
+        await resolveRevisao(interessadoId, cidade, estado);
+        setDone(true);
+      } catch (err) {
+        showToast(`Erro ao salvar revisão: ${(err as Error).message}`, "error");
+      }
     });
   }
 

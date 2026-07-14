@@ -20,6 +20,18 @@ export default async function RevisaoPage() {
     throw new Error(`Falha ao carregar revisões pendentes: ${error.message}`);
   }
 
+  // Contagem exata separada do limit acima — sem isso, uma fila maior que
+  // LIMIT não teria nenhum sinal de que existe mais coisa pendente além do
+  // que está na tela (mesma classe de bug já corrigida no dashboard).
+  const { count: totalPendentes, error: countError } = await supabase
+    .from("interessados_ativos")
+    .select("id", { count: "exact", head: true })
+    .eq("local_revisao_pendente", true);
+
+  if (countError) {
+    throw new Error(`Falha ao contar revisões pendentes: ${countError.message}`);
+  }
+
   const ids = interessados?.map((i) => i.id) ?? [];
 
   // Última sugestão de IA (não aplicada automaticamente) por interessado,
@@ -60,8 +72,10 @@ export default async function RevisaoPage() {
           <h1 className="text-2xl font-semibold">Revisão de local</h1>
           <p className="text-zinc-600 dark:text-zinc-400">
             Interessados cuja cidade/estado a normalização automática não
-            conseguiu resolver com confiança suficiente
-            (mostrando até {LIMIT} mais recentes).
+            conseguiu resolver com confiança suficiente.{" "}
+            {totalPendentes !== null && totalPendentes > LIMIT
+              ? `${totalPendentes.toLocaleString("pt-BR")} pendentes no total — mostrando os ${LIMIT} mais recentes.`
+              : `${(totalPendentes ?? 0).toLocaleString("pt-BR")} pendente(s).`}
           </p>
         </div>
         {interessados && interessados.length > 0 && <ResolverComIABotao />}

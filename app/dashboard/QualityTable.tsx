@@ -1,4 +1,5 @@
 import type { FonteQualidade } from "@/lib/dashboard/queries";
+import { StatusPill } from "@/app/_components/StatusPill";
 
 function formatPct(pct: number | null) {
   return pct === null ? "—" : `${pct.toFixed(0)}%`;
@@ -32,17 +33,7 @@ export function QualityTable({ fontes }: { fontes: FonteQualidade[] }) {
                 {f.artistaNome} — {f.eventoNome}
               </td>
               <td className="px-4 py-2">
-                <span
-                  className={
-                    f.status === "error"
-                      ? "text-[color:var(--status-critical)]"
-                      : f.status === "paused"
-                        ? "text-zinc-500"
-                        : "text-[color:var(--status-good)]"
-                  }
-                >
-                  {f.status}
-                </span>
+                <StatusPill status={f.status} />
               </td>
               <td className="px-4 py-2 text-zinc-500">
                 {f.lastSyncedAt ? new Date(f.lastSyncedAt).toLocaleString("pt-BR") : "nunca"}
