@@ -174,7 +174,7 @@ mexer em cor ou adicionar um gráfico novo (a paleta já validada vive em
 
 Além do passo determinístico do princípio 6 (que roda automaticamente no
 sync), existe uma segunda camada, opcional e disparada manualmente pelo
-botão "Resolver com IA" na tela `/revisao` (`lib/geo/aiResolveGeografia.ts`):
+botão "Resolver com IA" na tela `/fontes/revisao` (`lib/geo/aiResolveGeografia.ts`):
 trata com IA (Claude) os casos que o passo determinístico deixou pendentes
 (apelidos, abreviações, erros de digitação — ex: "Beaga" → Belo
 Horizonte/MG), aplicando automaticamente só quando a IA reporta confiança
@@ -335,7 +335,7 @@ GOOGLE_SERVICE_ACCOUNT_EMAIL=
 GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=
 SUPABASE_STORAGE_BUCKET=uploads-fontes  # bucket dos uploads de CSV/XLS
 CRON_SECRET=                     # para validar chamadas do Vercel Cron
-ANTHROPIC_API_KEY=               # server-side only; botão "Resolver com IA" em /revisao
+ANTHROPIC_API_KEY=               # server-side only; botão "Resolver com IA" em /fontes/revisao
 META_CONVERSIONS_API_ACCESS_TOKEN=  # server-side only; envio do evento "Lead" da Conversions API (opcional, por formulário)
 META_PIXEL_TEST_EVENT_CODE=      # opcional; código de teste do Events Manager, só para QA
 ```

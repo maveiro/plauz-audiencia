@@ -87,7 +87,7 @@ Aplicado em ordem por `supabase/migrations/`:
   sem filtro de período no v1).
 - **`0006_geo_ia_logs.sql`** — tabela `geo_ia_logs`: auditoria de toda
   sugestão de normalização geográfica gerada por IA (aplicada ou não),
-  disparada manualmente na tela `/revisao` — ver seção "Revisão de local
+  disparada manualmente na tela `/fontes/revisao` — ver seção "Revisão de local
   assistida por IA".
 - **`0007_fix_dash_diarios_timezone.sql`** — corrige `dash_interessados_diarios`
   para truncar o dia em América/São_Paulo, não no timezone da sessão do
@@ -212,7 +212,7 @@ do app.
 
 ## Revisão de local assistida por IA
 
-`/revisao` (`app/revisao/page.tsx`) lista os `interessados_ativos` com
+`/fontes/revisao` (`app/fontes/revisao/page.tsx`) lista os `interessados_ativos` com
 `local_revisao_pendente = true` — casos que a normalização determinística
 (`match_municipio`, pg_trgm) não resolveu com confiança suficiente. Além da
 confirmação manual (já existente, `resolveRevisao` em `actions.ts`), a tela

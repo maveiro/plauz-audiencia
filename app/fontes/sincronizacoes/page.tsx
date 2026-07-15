@@ -1,5 +1,6 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
+import { FontesTabs } from "../FontesTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,8 @@ export default async function SyncLogsPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <FontesTabs />
+
       <div>
         <h1 className="text-2xl font-semibold">Sincronizações</h1>
         <p className="text-zinc-600 dark:text-zinc-400">

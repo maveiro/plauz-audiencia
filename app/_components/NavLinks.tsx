@@ -4,13 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_LINKS = [
-  { href: "/", label: "Início" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/artistas", label: "Artistas" },
   { href: "/fontes", label: "Fontes" },
-  { href: "/revisao", label: "Revisão de local" },
   { href: "/publico-sobreposto", label: "Sobreposição de público" },
-  { href: "/sync-logs", label: "Sincronizações" },
 ];
 
 export function NavLinks() {
@@ -19,7 +16,7 @@ export function NavLinks() {
   return (
     <>
       {NAV_LINKS.map((link) => {
-        const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+        const active = pathname.startsWith(link.href);
         return (
           <Link
             key={link.href}

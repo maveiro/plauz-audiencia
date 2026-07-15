@@ -23,7 +23,7 @@ nunca alterar a fonte original.
 - `papaparse` / `xlsx` (SheetJS) — leitura de arquivos CSV/Excel enviados por upload
 - Vercel Cron — sincronização automática periódica (apenas fontes do tipo Google Sheets; ver nota sobre o plano Hobby abaixo)
 - [Recharts](https://recharts.org) — gráficos do dashboard (`/dashboard`)
-- Anthropic (Claude) — opcional, só para o botão "Resolver com IA" em `/revisao`
+- Anthropic (Claude) — opcional, só para o botão "Resolver com IA" em `/fontes/revisao`
 
 ## Setup local
 
@@ -172,11 +172,11 @@ autenticação está funcionando.
 │   ├── auth/callback/             # troca o code do OAuth por sessão, valida domínio do e-mail
 │   ├── acesso-negado/             # tela pra quem tenta logar fora do domínio autorizado
 │   ├── artistas/                  # cadastro de artistas e eventos
-│   ├── fontes/                    # cadastro, listagem, mapeamento e exclusão de fontes
-│   ├── revisao/                   # revisão manual de cidade/estado ambíguos (com botão "Resolver com IA")
+│   ├── fontes/                    # cadastro, listagem, mapeamento e exclusão de fontes (abas: Fontes, Revisão de local, Sincronizações)
+│   │   ├── revisao/               # revisão manual de cidade/estado ambíguos (com botão "Resolver com IA")
+│   │   └── sincronizacoes/        # histórico de sincronizações
 │   ├── publico-sobreposto/        # análise de sobreposição de público entre artistas
-│   ├── sync-logs/                 # histórico de sincronizações
-│   ├── dashboard/                 # acompanhamento diário — volume, tendência, ranking, geografia, qualidade
+│   ├── dashboard/                 # acompanhamento diário — volume, tendência, ranking, geografia, qualidade (home da aplicação, "/" redireciona pra cá)
 │   └── api/
 │       ├── sync/[sourceId]/       # dispara o motor de sincronização
 │       ├── sources/upload/        # cria fonte arquivo_upload (recebe o arquivo)
@@ -223,7 +223,7 @@ autenticação está funcionando.
   tendência, ranking de eventos, geografia e qualidade de dado por fonte,
   com alerta quando uma fonte para de sincronizar. Filtrável por período,
   artista, fonte e cidade. Só leitura.
-- **Revisão de local assistida por IA**: no `/revisao`, além da confirmação
+- **Revisão de local assistida por IA**: no `/fontes/revisao`, além da confirmação
   manual, um botão "Resolver com IA" trata com Claude os casos que a
   normalização determinística deixou pendentes, sempre validando a sugestão
   contra a lista de municípios antes de aplicar, e registrando tudo em
@@ -288,7 +288,7 @@ o cron de sincronização diária ativo (ver "Automação" acima), e login
 obrigatório restrito a `plauz.com.br` (ver "Conceitos-chave" acima e
 `ARCHITECTURE.md`, seção "Autenticação"). `ANTHROPIC_API_KEY` e
 `META_CONVERSIONS_API_ACCESS_TOKEN` são variáveis opcionais — sem a
-primeira, o botão "Resolver com IA" em `/revisao` falha ao ser clicado; sem
+primeira, o botão "Resolver com IA" em `/fontes/revisao` falha ao ser clicado; sem
 a segunda, formulários nativos continuam recebendo respostas normalmente,
 só não disparam o evento "Lead" pra Conversions API da Meta mesmo que um
 Pixel esteja configurado (fica registrado como erro em `meta_capi_logs`,

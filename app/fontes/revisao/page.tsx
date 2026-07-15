@@ -1,6 +1,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { RevisaoRow } from "./RevisaoRow";
 import { ResolverComIABotao } from "./ResolverComIABotao";
+import { FontesTabs } from "../FontesTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +68,8 @@ export default async function RevisaoPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <FontesTabs />
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Revisão de local</h1>

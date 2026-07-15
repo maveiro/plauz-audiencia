@@ -32,7 +32,7 @@ export async function resolveRevisao(
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/revisao");
+  revalidatePath("/fontes/revisao");
 }
 
 /**
@@ -60,6 +60,6 @@ export async function resolverComIA() {
 
   const resultado = await resolverPendentesComIA(supabase, pendentes);
 
-  revalidatePath("/revisao");
+  revalidatePath("/fontes/revisao");
   return resultado;
 }

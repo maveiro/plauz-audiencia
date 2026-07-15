@@ -72,7 +72,7 @@ const RESULTADO_SCHEMA = {
 /**
  * Segunda camada de normalização geográfica, sobre os casos que o passo
  * determinístico (match_municipio, pg_trgm) deixou pendentes. Disparada
- * manualmente (botão "Resolver com IA" em /revisao) — não roda como parte
+ * manualmente (botão "Resolver com IA" em /fontes/revisao) — não roda como parte
  * do motor de sincronização, para não acoplar uma dependência externa/custo
  * variável ao caminho crítico do sync (CLAUDE.md, princípio 6, cobre o
  * passo determinístico; este é um passo adicional e deliberado, no mesmo

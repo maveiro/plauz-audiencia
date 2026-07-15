@@ -4,6 +4,7 @@ import { StatusPill } from "@/app/_components/StatusPill";
 import { SyncButton } from "./SyncButton";
 import { ReenviarArquivoForm } from "./ReenviarArquivoForm";
 import { DeleteSourceButton } from "./DeleteSourceButton";
+import { FontesTabs } from "./FontesTabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,8 @@ export default async function FontesPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <FontesTabs />
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Fontes</h1>
