@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/database.types";
+import { hasArtistsAccess } from "@/lib/auth/hasArtistsAccess";
 
 // /f e /api/f são a página pública de formulário nativo e sua rota de
 // submissão — deliberadamente abertas a qualquer visitante da internet, sem
@@ -69,6 +70,17 @@ export async function updateSession(request: NextRequest) {
   // Isso só cobre uma regressão futura (ex: alguém convidar um usuário
   // manualmente pelo dashboard do Supabase, pulando o callback).
   if (user && !isExempt && !user.email?.toLowerCase().endsWith(`@${ALLOWED_DOMAIN}`)) {
+    await supabase.auth.signOut();
+    return NextResponse.redirect(new URL("/acesso-negado", request.url));
+  }
+
+  // Integração com a plataforma central Plauz (plauz-core): além do domínio,
+  // o usuário precisa ter o papel 'member' concedido em core.user_app_roles
+  // para o app 'artists'. Somado à checagem de domínio acima, não a
+  // substitui — enquanto o backfill do papel para quem já tinha acesso não
+  // rodar, ninguém deveria ficar de fora por causa disto (ver plano de
+  // corte, plauz-core/docs/decisions).
+  if (user && !isExempt && !(await hasArtistsAccess(supabase))) {
     await supabase.auth.signOut();
     return NextResponse.redirect(new URL("/acesso-negado", request.url));
   }

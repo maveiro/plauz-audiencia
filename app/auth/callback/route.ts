@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/serverClient";
+import { hasArtistsAccess } from "@/lib/auth/hasArtistsAccess";
 
 const ALLOWED_DOMAIN = (process.env.ALLOWED_EMAIL_DOMAIN ?? "plauz.com.br").trim().toLowerCase();
 
@@ -35,6 +36,15 @@ export async function GET(request: NextRequest) {
 
   const email = data.session.user.email?.toLowerCase() ?? "";
   if (!email.endsWith(`@${ALLOWED_DOMAIN}`)) {
+    await supabase.auth.signOut();
+    return NextResponse.redirect(new URL("/acesso-negado", url.origin));
+  }
+
+  // Integração com a plataforma central Plauz (plauz-core) — ver
+  // middleware.ts para a mesma checagem aplicada a cada requisição
+  // subsequente. Rejeitar aqui também evita depender só do middleware para
+  // o primeiro redirecionamento pós-login.
+  if (!(await hasArtistsAccess(supabase))) {
     await supabase.auth.signOut();
     return NextResponse.redirect(new URL("/acesso-negado", url.origin));
   }
