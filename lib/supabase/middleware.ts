@@ -71,7 +71,7 @@ export async function updateSession(request: NextRequest) {
   // manualmente pelo dashboard do Supabase, pulando o callback).
   if (user && !isExempt && !user.email?.toLowerCase().endsWith(`@${ALLOWED_DOMAIN}`)) {
     await supabase.auth.signOut();
-    return NextResponse.redirect(new URL("/acesso-negado", request.url));
+    return NextResponse.redirect(new URL("/acesso-negado?reason=domain", request.url));
   }
 
   // Integração com a plataforma central Plauz (plauz-core): além do domínio,
@@ -82,7 +82,7 @@ export async function updateSession(request: NextRequest) {
   // corte, plauz-core/docs/decisions).
   if (user && !isExempt && !(await hasArtistsAccess(supabase))) {
     await supabase.auth.signOut();
-    return NextResponse.redirect(new URL("/acesso-negado", request.url));
+    return NextResponse.redirect(new URL("/acesso-negado?reason=no_access", request.url));
   }
 
   // Repassa o pathname pro root layout (Server Component) decidir se

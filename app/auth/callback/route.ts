@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
   const email = data.session.user.email?.toLowerCase() ?? "";
   if (!email.endsWith(`@${ALLOWED_DOMAIN}`)) {
     await supabase.auth.signOut();
-    return NextResponse.redirect(new URL("/acesso-negado", url.origin));
+    return NextResponse.redirect(new URL("/acesso-negado?reason=domain", url.origin));
   }
 
   // Integração com a plataforma central Plauz (plauz-core) — ver
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
   // o primeiro redirecionamento pós-login.
   if (!(await hasArtistsAccess(supabase))) {
     await supabase.auth.signOut();
-    return NextResponse.redirect(new URL("/acesso-negado", url.origin));
+    return NextResponse.redirect(new URL("/acesso-negado?reason=no_access", url.origin));
   }
 
   return NextResponse.redirect(new URL(next, url.origin));
